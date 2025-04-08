@@ -1,0 +1,11 @@
+:root {
+    --primary-color: #ff8c00; /* Orange */
+    --secondary-color: #1b263b; /* Dark Blue */
+    --text-light: #ffffff;
+    --text-dark: #333333;
+    --background-light: #f8f9fa;
+    --background-dark: #e9ecef;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 68px;
+    --transition-speed: 0.3s;
+  }

@@ -51,14 +51,14 @@ const Header = () => {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#ff8c00] transition-all duration-300 group-hover:w-full"></span>
           </NavLink>
           <NavLink 
-            to="/bibliotheque" 
+            to="/catalogue" 
             className={({isActive}) => `
               relative transition-all duration-200 py-2 px-1
               hover:text-[#ff8c00] group
               ${isActive ? 'text-[#ff8c00]' : scrolled ? 'text-gray-700' : 'text-white'}
             `}
           >
-            Bibliothèque
+            Catalogue
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#ff8c00] transition-all duration-300 group-hover:w-full"></span>
           </NavLink>
           <NavLink 
@@ -86,7 +86,7 @@ const Header = () => {
           {/* Panier avec badge */}
           <div className="relative">
             <NavLink 
-              to="/reservations" 
+              to="/dashboard/cart" 
               className={`p-2 rounded-full transition-all hover:bg-opacity-10 hover:bg-[#1b263b] ${
                 scrolled ? 'text-gray-700 hover:text-[#ff8c00]' : 'text-white hover:text-[#ff8c00]'
               }`}
@@ -177,7 +177,7 @@ const Header = () => {
             
             <div className="border-t border-gray-200 pt-2">
               <NavLink 
-                to="/reservations" 
+                to="/dashboard/cart" 
                 className={({isActive}) => 
                   `py-2 px-4 rounded-md transition-colors flex items-center justify-between ${isActive 
                     ? 'bg-orange-100 text-[#ff8c00] font-medium' 

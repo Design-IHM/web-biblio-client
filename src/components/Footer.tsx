@@ -15,7 +15,7 @@ const Footer = () => {
               <h3 className="text-lg font-bold mb-4">Liens rapides</h3>
               <ul className="space-y-2">
                 <li><a href="/books" className="hover:text-[#ff8c00]">Catalogue</a></li>
-                <li><a href="/reservations" className="hover:text-[#ff8c00]">Mes réservations</a></li>
+                <li><a href="/dashboard/cart" className="hover:text-[#ff8c00]">Mes réservations</a></li>
                 <li><a href="/borrowings" className="hover:text-[#ff8c00]">Mes emprunts</a></li>
               </ul>
             </div>

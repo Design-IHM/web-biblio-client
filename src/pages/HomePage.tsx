@@ -40,7 +40,7 @@ const testimonials = [
     text: "J'adore le nouveau système en ligne qui me permet de réserver des livres à l'avance. Le personnel est toujours accueillant et prêt à aider."
   },
   {
-    name: "Eléonor Cassin",
+    name: "BornBeforeDesign",
     role: "Étudiant",
     text: "Les espaces de travail sont parfaits pour mes révisions. L'accès aux ressources numériques a considérablement facilité mes recherches universitaires."
   },
@@ -243,7 +243,7 @@ const TestimonialsSection = ({ testimonials }) => {
               delay={0.1}
             />
             <TestimonialCard 
-              name="Eléonor Cassin"
+              name="BornBeforeDesign"
               role="Étudiant"
               text="Les espaces de travail sont parfaits pour mes révisions. L'accès aux ressources numériques a considérablement facilité mes recherches universitaires."
               delay={0.2}

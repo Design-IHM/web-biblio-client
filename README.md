@@ -1,2 +1,3 @@
 colors:primary Orange: #ff8c00 and secondary Dark blue:#1b263b
 
+MAintenant aide moi à ameliore la page du profil elle doit etre tres tres belle : la plus belle de mon site doit utiliser ces couleurs: primary Orange: #ff8c00 and secondary Dark blue:#1b263b et doit etre dic=visee en plusieurs sections pour plus de coherence, une section pour les informations personnelles de l'utilisateur, quil pourra voir et modifier sil le souhaite, une section pour ses parametres ou ils choisit la langue, le thème, une section donfidentialité et securite. Fais un tres beau design et fais que les deux couleurs soient vraiment présentes: #ff8c00 et #1b263b et bien agencées
