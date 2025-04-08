@@ -34,6 +34,9 @@ const Partenaires = () => {
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-orange-500 to-blue-800"></div>
+          </div>
         <h2 className="text-3xl font-bold text-center mb-12 text-secondary">Nos Partenaires</h2>
         
         <div className="flex flex-wrap justify-center items-center gap-12">

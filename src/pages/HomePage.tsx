@@ -204,11 +204,14 @@ const TestimonialsSection = ({ testimonials }) => {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeInUp}
-        >
-          <span className="inline-block py-1 px-3 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4">
+        > 
+           <div className="flex justify-center mb-4">
+            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-orange-500 to-blue-800"></div>
+          </div>
+          <p className="text-4xl font-bold mb-6 py-1 px-3 rounded-full bg-secondary/10  ">
             Témoignages
-          </span>
-          <h2 className="text-4xl font-bold mb-4 text-secondary">Ce que disent nos lecteurs</h2>
+          </p>
+          <h2 className="text-2xl font-bold mb-4 text-secondary">Ce que disent nos lecteurs</h2>
           <div className="w-24 h-1 mx-auto bg-primary rounded-full mb-6"></div>
           <p className="max-w-2xl mx-auto text-gray-600">
             Découvrez les expériences partagées par notre communauté de lecteurs et d'apprenants passionnés.
@@ -370,6 +373,9 @@ const StatisticsSection = () => {
           viewport={{ once: true }}
           variants={fadeInUp}
         >
+           <div className="flex justify-center mb-4">
+            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-orange-500 to-blue-800"></div>
+          </div>
           <span className="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4">
             Nos chiffres
           </span>
