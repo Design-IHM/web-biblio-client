@@ -1,0 +1,32 @@
+/* Ajoutez ceci à src/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #3498db;
+  --color-secondary: #2c3e50;
+}
+
+@keyframes float {
+    0% {
+      transform: translateY(0) rotate(-12deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(-8deg);
+    }
+    100% {
+      transform: translateY(0) rotate(-12deg);
+    }
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .bg-grid-pattern {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
