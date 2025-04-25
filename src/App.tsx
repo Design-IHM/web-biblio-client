@@ -8,6 +8,8 @@ import ProfilePage from './pages/dashboard/Profile';
 import ReservationsPage from './pages/dashboard/ReservationsPage';
 import StatisticsPage from './pages/dashboard/StatisticsPage';
 import CartPage from './pages/dashboard/CartPage';
+import CataloguePage from './pages/CataloguePage';
+import BookDetailsPage from './pages/BookDetailsPage';
 
 
 /*
@@ -33,6 +35,14 @@ const router = createBrowserRouter([
     path: '/auth',
     element: <AuthenticationPage />,
   },
+  {
+    path: '/catalogue',
+    element: <CataloguePage />,
+  },
+    {
+      path: '/book/:id',
+      element: <BookDetailsPage />,
+    },
   {
     path: '/dashboard',
     element: <DashboardLayout />,
