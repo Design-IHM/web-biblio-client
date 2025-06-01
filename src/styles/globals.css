@@ -1,32 +1,312 @@
-/* Ajoutez ceci à src/styles/globals.css */
+/* src/styles/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #3498db;
-  --color-secondary: #2c3e50;
+    --color-primary: #ff8c00;
+    --color-secondary: #1b263b;
+    --tw-color-primary: #ff8c00;
+    --tw-color-secondary: #1b263b;
 }
 
+/* Animation pour les livres flottants */
 @keyframes float {
     0% {
-      transform: translateY(0) rotate(-12deg);
+        transform: translateY(0) rotate(-12deg);
     }
     50% {
-      transform: translateY(-10px) rotate(-8deg);
+        transform: translateY(-10px) rotate(-8deg);
     }
     100% {
-      transform: translateY(0) rotate(-12deg);
+        transform: translateY(0) rotate(-12deg);
     }
-  }
-  
-  .animate-float {
+}
+
+.animate-float {
     animation: float 6s ease-in-out infinite;
-  }
-  
-  .bg-grid-pattern {
+}
+
+/* Classes utilitaires pour les couleurs dynamiques */
+.text-primary-dynamic {
+    color: var(--color-primary);
+}
+
+.text-secondary-dynamic {
+    color: var(--color-secondary);
+}
+
+.bg-primary-dynamic {
+    background-color: var(--color-primary);
+}
+
+.bg-secondary-dynamic {
+    background-color: var(--color-secondary);
+}
+
+.border-primary-dynamic {
+    border-color: var(--color-primary);
+}
+
+.border-secondary-dynamic {
+    border-color: var(--color-secondary);
+}
+
+/* Hover effects avec couleurs dynamiques */
+.hover-primary-dynamic:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.hover-secondary-dynamic:hover {
+    background-color: var(--color-secondary);
+    color: white;
+}
+
+/* Patterns de fond */
+.bg-grid-pattern {
     background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 20px 20px;
-  }
-  
+}
+
+/* Animations pour les changements de thème */
+.theme-transition {
+    transition: background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Animation pour les éléments qui apparaissent */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Animation pour les cartes */
+@keyframes cardHover {
+    from {
+        transform: translateY(0) scale(1);
+    }
+    to {
+        transform: translateY(-8px) scale(1.02);
+    }
+}
+
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    animation: cardHover 0.3s ease forwards;
+}
+
+/* Gradient animé pour les boutons */
+.gradient-button {
+    background: linear-gradient(45deg, var(--color-primary), var(--color-secondary));
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+}
+
+/* Classes pour masquer la scrollbar */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Animation de pulsation pour les éléments importants */
+@keyframes pulse-primary {
+    0%, 100% {
+        box-shadow: 0 0 0 0 var(--color-primary);
+    }
+    70% {
+        box-shadow: 0 0 0 10px transparent;
+    }
+}
+
+.pulse-primary {
+    animation: pulse-primary 2s infinite;
+}
+
+/* Effet de survol pour les liens */
+.link-hover {
+    position: relative;
+    overflow: hidden;
+}
+
+.link-hover::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--color-primary);
+    transition: width 0.3s ease;
+}
+
+.link-hover:hover::before {
+    width: 100%;
+}
+
+/* Animation pour les icônes */
+@keyframes iconBounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+.icon-bounce:hover {
+    animation: iconBounce 1s;
+}
+
+/* Styles pour les notifications toast */
+.toast-enter {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.toast-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 300ms, transform 300ms;
+}
+
+.toast-exit {
+    opacity: 1;
+}
+
+.toast-exit-active {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 300ms, transform 300ms;
+}
+
+/* Effet de shimmer pour le loading */
+@keyframes shimmer {
+    0% {
+        background-position: -468px 0;
+    }
+    100% {
+        background-position: 468px 0;
+    }
+}
+
+.shimmer {
+    animation: shimmer 1.2s ease-in-out infinite;
+    background: linear-gradient(
+        to right,
+        #f6f7f8 0%,
+        #edeef1 20%,
+        #f6f7f8 40%,
+        #f6f7f8 100%
+    );
+    background-size: 800px 104px;
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+    .animate-float {
+        animation-duration: 4s;
+    }
+
+    .hide-on-mobile {
+        display: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-pattern-opacity: 0.03;
+    }
+
+    .bg-grid-pattern {
+        background-image: linear-gradient(rgba(255, 255, 255, var(--bg-pattern-opacity)) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, var(--bg-pattern-opacity)) 1px, transparent 1px);
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus styles */
+.focus-primary:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.focus-secondary:focus {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+}
+
+/* Custom properties for dynamic theming */
+.dynamic-theme {
+    --primary: var(--color-primary);
+    --secondary: var(--color-secondary);
+    --primary-rgb: 255, 140, 0; /* Default, will be updated by JS */
+    --secondary-rgb: 27, 38, 59; /* Default, will be updated by JS */
+}
+
+/* Utilities for alpha variations */
+.bg-primary-10 { background-color: rgba(var(--primary-rgb), 0.1); }
+.bg-primary-20 { background-color: rgba(var(--primary-rgb), 0.2); }
+.bg-primary-30 { background-color: rgba(var(--primary-rgb), 0.3); }
+
+.bg-secondary-10 { background-color: rgba(var(--secondary-rgb), 0.1); }
+.bg-secondary-20 { background-color: rgba(var(--secondary-rgb), 0.2); }
+.bg-secondary-30 { background-color: rgba(var(--secondary-rgb), 0.3); }
