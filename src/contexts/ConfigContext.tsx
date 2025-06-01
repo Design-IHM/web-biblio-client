@@ -8,6 +8,7 @@ interface ConfigContextType {
     isLoading: boolean;
     error: string | null;
     refetch: () => Promise<void>;
+    testConnection: () => Promise<boolean>;
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -24,53 +25,77 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
 
     const fetchSettings = async () => {
         try {
+            console.log('🚀 ConfigProvider: Starting to fetch settings...');
             setIsLoading(true);
             setError(null);
+
+            // Test de connexion Firebase d'abord
+            const isConnected = await configService.testFirebaseConnection();
+            if (!isConnected) {
+                throw new Error('Impossible de se connecter à Firebase');
+            }
 
             const [orgData, appData] = await Promise.all([
                 configService.getOrgSettings(),
                 configService.getAppSettings()
             ]);
 
+            console.log('📊 ConfigProvider: Settings fetched:', { orgData, appData });
+
             setOrgSettings(orgData);
             setAppSettings(appData);
 
-            // Appliquer le thème dynamiquement
-            if (orgData.Theme) {
-                applyTheme(orgData.Theme);
+            // Vérifier si les données viennent vraiment de Firebase
+            if (orgData.Name === 'BiblioENSPY' && !orgData.Logo) {
+                console.warn('⚠️ Using default settings - check Firebase data');
+                setError('Utilisation des paramètres par défaut. Vérifiez votre base de données Firebase.');
             }
+
         } catch (err) {
-            setError('Erreur lors du chargement de la configuration');
-            console.error('Config fetch error:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+            console.error('❌ ConfigProvider: Error fetching settings:', err);
+            setError(`Erreur de configuration: ${errorMessage}`);
+
+            // Charger les paramètres par défaut en cas d'erreur
+            try {
+                const [orgData, appData] = await Promise.all([
+                    configService.getOrgSettings(),
+                    configService.getAppSettings()
+                ]);
+                setOrgSettings(orgData);
+                setAppSettings(appData);
+            } catch (fallbackError) {
+                console.error('❌ Even fallback failed:', fallbackError);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    const applyTheme = (theme: { Primary: string; Secondary: string }) => {
-        const root = document.documentElement;
-        root.style.setProperty('--color-primary', theme.Primary);
-        root.style.setProperty('--color-secondary', theme.Secondary);
-
-        // Mise à jour des variables CSS pour Tailwind
-        const style = document.createElement('style');
-        style.textContent = `
-      :root {
-        --tw-color-primary: ${theme.Primary};
-        --tw-color-secondary: ${theme.Secondary};
-      }
-    `;
-        document.head.appendChild(style);
+    const testConnection = async (): Promise<boolean> => {
+        return await configService.testFirebaseConnection();
     };
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
     const refetch = async () => {
+        console.log('🔄 ConfigProvider: Manual refetch requested');
         configService.invalidateCache();
         await fetchSettings();
     };
+
+    useEffect(() => {
+        console.log('🏗️ ConfigProvider: Initializing...');
+        fetchSettings();
+    }, []);
+
+    // Debug: Log des changements d'état
+    useEffect(() => {
+        console.log('📊 ConfigProvider State Update:', {
+            orgSettings: orgSettings?.Name,
+            appSettings: appSettings?.AppVersion,
+            isLoading,
+            error
+        });
+    }, [orgSettings, appSettings, isLoading, error]);
 
     return (
         <ConfigContext.Provider value={{
@@ -78,7 +103,8 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
             appSettings,
             isLoading,
             error,
-            refetch
+            refetch,
+            testConnection
         }}>
             {children}
         </ConfigContext.Provider>

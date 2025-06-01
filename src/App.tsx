@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from './contexts/ConfigContext';
+import DebugConfig from './components/DebugConfig'; // Import du composant de débogage
 import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
 import AuthenticationPage from './pages/AuthenticationPage';
@@ -71,6 +72,7 @@ function App() {
     return (
         <ConfigProvider>
             <RouterProvider router={router} />
+            <DebugConfig />
         </ConfigProvider>
     );
 }
