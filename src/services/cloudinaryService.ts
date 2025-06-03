@@ -1,5 +1,3 @@
-// src/services/cloudinary/cloudinaryService.ts
-
 interface CloudinaryConfig {
     cloudName: string;
     uploadPreset: string;
@@ -9,11 +7,12 @@ interface CloudinaryConfig {
 interface UploadOptions {
     folder?: string;
     publicId?: string;
-    transformation?: string;
     quality?: 'auto' | 'auto:good' | 'auto:best' | number;
     format?: 'auto' | 'jpg' | 'png' | 'webp';
-    maxFileSize?: number; // en bytes
+    maxFileSize?: number;
     allowedFormats?: string[];
+    tags?: string[];
+    context?: Record<string, string>;
 }
 
 interface UploadResponse {
@@ -42,6 +41,7 @@ class CloudinaryService {
 
     /**
      * Upload d'image pour avatar/profil
+     * Les transformations seront appliquées via l'upload preset
      */
     async uploadAvatar(
         file: File,
@@ -51,11 +51,11 @@ class CloudinaryService {
         const options: UploadOptions = {
             folder: 'avatars',
             publicId: `avatar_${userId}_${Date.now()}`,
-            transformation: 'c_fill,w_200,h_200,q_auto,f_auto',
+            // ✅ Les transformations sont définies dans l'upload preset
             quality: 'auto:good',
-            format: 'auto',
             maxFileSize: 5 * 1024 * 1024, // 5MB
-            allowedFormats: ['jpg', 'jpeg', 'png', 'webp']
+            allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+            tags: ['avatar', 'profile']
         };
 
         return this.uploadImage(file, options, onProgress);
@@ -72,11 +72,11 @@ class CloudinaryService {
         const options: UploadOptions = {
             folder: 'book-covers',
             publicId: `book_${bookId}_${Date.now()}`,
-            transformation: 'c_fill,w_400,h_600,q_auto,f_auto',
+            // ✅ Les transformations sont définies dans l'upload preset
             quality: 'auto:best',
-            format: 'auto',
             maxFileSize: 10 * 1024 * 1024, // 10MB
-            allowedFormats: ['jpg', 'jpeg', 'png', 'webp']
+            allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+            tags: ['book', 'cover']
         };
 
         return this.uploadImage(file, options, onProgress);
@@ -94,9 +94,9 @@ class CloudinaryService {
             folder,
             publicId: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             quality: 'auto',
-            format: 'auto',
             maxFileSize: 15 * 1024 * 1024, // 15MB
-            allowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif']
+            allowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+            tags: ['general', 'upload']
         };
 
         return this.uploadImage(file, options, onProgress);
@@ -115,9 +115,9 @@ class CloudinaryService {
             folder,
             publicId: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             quality: 'auto',
-            format: 'auto',
             maxFileSize: 20 * 1024 * 1024, // 20MB
             allowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+            tags: ['dragdrop', 'upload'],
             ...customOptions
         };
 
@@ -125,7 +125,7 @@ class CloudinaryService {
     }
 
     /**
-     * Méthode générique d'upload
+     * Méthode générique d'upload (CORRIGÉE)
      */
     private async uploadImage(
         file: File,
@@ -147,6 +147,7 @@ class CloudinaryService {
             formData.append('file', file);
             formData.append('upload_preset', this.config.uploadPreset);
 
+            // ✅ Paramètres autorisés pour unsigned upload
             if (options.folder) {
                 formData.append('folder', options.folder);
             }
@@ -155,9 +156,24 @@ class CloudinaryService {
                 formData.append('public_id', options.publicId);
             }
 
-            if (options.transformation) {
-                formData.append('transformation', options.transformation);
+            if (options.tags && options.tags.length > 0) {
+                formData.append('tags', options.tags.join(','));
             }
+
+            if (options.context) {
+                formData.append('context', Object.entries(options.context)
+                    .map(([key, value]) => `${key}=${value}`)
+                    .join('|')
+                );
+            }
+
+            // ❌ SUPPRIMÉ: transformation (cause de l'erreur)
+            // ✅ Les transformations doivent être configurées dans l'upload preset
+
+            console.log('📤 Upload vers Cloudinary...');
+            console.log('📁 Folder:', options.folder);
+            console.log('🆔 Public ID:', options.publicId);
+            console.log('🏷️ Tags:', options.tags);
 
             // URL d'upload Cloudinary
             const uploadUrl = `https://api.cloudinary.com/v1_1/${this.config.cloudName}/image/upload`;
@@ -186,6 +202,7 @@ class CloudinaryService {
                         const response = JSON.parse(xhr.responseText);
 
                         if (xhr.status === 200 && response.secure_url) {
+                            console.log('✅ Upload réussi:', response.secure_url);
                             resolve({
                                 success: true,
                                 url: response.secure_url,
@@ -196,13 +213,14 @@ class CloudinaryService {
                                 bytes: response.bytes
                             });
                         } else {
+                            console.error('❌ Erreur Cloudinary:', response);
                             resolve({
                                 success: false,
                                 error: response.error?.message || 'Erreur lors de l\'upload'
                             });
                         }
                     } catch (error) {
-                        console.error('Erreur traitement Cloudinary:', error);
+                        console.error('❌ Erreur traitement Cloudinary:', error);
                         resolve({
                             success: false,
                             error: 'Erreur lors du traitement de la réponse'
@@ -212,6 +230,7 @@ class CloudinaryService {
 
                 // Gestion des erreurs
                 xhr.addEventListener('error', () => {
+                    console.error('❌ Erreur réseau Cloudinary');
                     resolve({
                         success: false,
                         error: 'Erreur de connexion lors de l\'upload'
@@ -220,6 +239,7 @@ class CloudinaryService {
 
                 // Timeout
                 xhr.addEventListener('timeout', () => {
+                    console.error('❌ Timeout Cloudinary');
                     resolve({
                         success: false,
                         error: 'Timeout lors de l\'upload'
@@ -233,7 +253,7 @@ class CloudinaryService {
             });
 
         } catch (error) {
-            console.error('Erreur upload Cloudinary:', error);
+            console.error('❌ Erreur upload Cloudinary:', error);
             return {
                 success: false,
                 error: 'Erreur inattendue lors de l\'upload'
@@ -275,7 +295,7 @@ class CloudinaryService {
     }
 
     /**
-     * Génération d'URL avec transformations
+     * Génération d'URL avec transformations (à utiliser APRÈS l'upload)
      */
     generateUrl(publicId: string, transformations: string = ''): string {
         const baseUrl = `https://res.cloudinary.com/${this.config.cloudName}/image/upload`;
@@ -288,29 +308,7 @@ class CloudinaryService {
     }
 
     /**
-     * Suppression d'image (nécessite la signature côté serveur)
-     */
-    /*async deleteImage(publicId: string): Promise<{ success: boolean; error?: string }> {
-        try {
-            // Note: La suppression nécessite une authentification côté serveur
-            // Cette méthode est un placeholder pour une future implémentation
-            console.warn('La suppression d\'images nécessite une implémentation côté serveur');
-
-            return {
-                success: false,
-                error: 'La suppression d\'images nécessite une authentification côté serveur'
-            };
-        } catch (error) {
-            console.error('Erreur suppression Cloudinary:', error);
-            return {
-                success: false,
-                error: 'Erreur lors de la suppVITE_CLOUDINARY_UPLOAD_PRESETression'
-            };
-        }
-    }*/
-
-    /**
-     * Optimisation d'URL pour différentes tailles
+     * Optimisation d'URL pour différentes tailles (à utiliser APRÈS l'upload)
      */
     getOptimizedUrl(publicId: string, size: 'thumbnail' | 'small' | 'medium' | 'large' | 'original' = 'medium'): string {
         const transformations: Record<string, string> = {
@@ -325,7 +323,7 @@ class CloudinaryService {
     }
 }
 
-// Configuration par défaut (à personnaliser selon votre projet)
+// Configuration par défaut
 const defaultConfig: CloudinaryConfig = {
     cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your-cloud-name',
     uploadPreset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'your-upload-preset'

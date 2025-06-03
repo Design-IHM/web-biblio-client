@@ -19,8 +19,10 @@ import {
     GraduationCap,
     Users,
     UserCheck,
-    ArrowLeft,
-    BookOpen
+    BookOpen,
+    Shield,
+    Camera,
+    CheckCircle
 } from 'lucide-react';
 
 interface RegisterFormProps {
@@ -195,339 +197,367 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* En-tête centré */}
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-6 px-4 flex items-center justify-center">
+            <div className="w-full max-w-6xl">
+                {/* En-tête */}
                 <div className="text-center mb-8">
-                    <div
-                        className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: primaryColor }}
-                    >
-                        <GraduationCap className="h-8 w-8 text-white" />
+                    <div className="relative inline-block">
+                        <div
+                            className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            <GraduationCap className="h-10 w-10 text-white" />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-bold" style={{ color: secondaryColor }}>
+                    <h1 className="text-4xl font-bold mb-2" style={{ color: secondaryColor }}>
                         Rejoindre {organizationName}
                     </h1>
-                    <p className="text-gray-600 mt-2">
-                        Créez votre compte pour accéder à notre bibliothèque
+                    <p className="text-gray-600 text-lg">
+                        Créez votre compte et accédez à notre univers de connaissances
                     </p>
+                    <div className="w-24 h-1 mx-auto mt-4 rounded-full" style={{ backgroundColor: primaryColor }}></div>
                 </div>
 
-                <form onSubmit={handleSubmit}>
-                    {/* Erreur générale */}
-                    {errors.general && (
-                        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                            <p className="text-red-600 text-sm font-medium">{errors.general}</p>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* COLONNE GAUCHE */}
-                        <div className="space-y-6">
-                            {/* Photo de profil */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                                    Photo de profil
-                                </h3>
-                                <div className="flex justify-center">
-                                    <AvatarUploader
-                                        currentAvatar={avatarUrl}
-                                        onAvatarUploaded={handleAvatarUploaded}
-                                        onAvatarRemoved={handleAvatarRemoved}
-                                        size="lg"
-                                        userName={formData.name}
-                                        userId="temp-user"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Switch Statut */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                                    Vous êtes *
-                                </h3>
-                                <div className="relative bg-gray-50 rounded-lg p-1 border-2 border-gray-200 shadow-sm">
-                                    <div
-                                        className="absolute top-1 bottom-1 w-1/2 rounded-md transition-all duration-300 ease-in-out shadow-sm"
-                                        style={{
-                                            left: formData.statut === 'etudiant' ? '4px' : '50%',
-                                            backgroundColor: primaryColor
-                                        }}
-                                    />
-                                    <div className="relative flex">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleStatusSwitch('etudiant')}
-                                            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-md font-medium transition-colors ${
-                                                formData.statut === 'etudiant'
-                                                    ? 'text-white'
-                                                    : 'text-gray-600 hover:text-gray-800'
-                                            }`}
-                                        >
-                                            <GraduationCap className="h-5 w-5" />
-                                            <span>Étudiant(e)</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleStatusSwitch('enseignant')}
-                                            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-md font-medium transition-colors ${
-                                                formData.statut === 'enseignant'
-                                                    ? 'text-white'
-                                                    : 'text-gray-600 hover:text-gray-800'
-                                            }`}
-                                        >
-                                            <UserCheck className="h-5 w-5" />
-                                            <span>Enseignant(e)</span>
-                                        </button>
+                {/* Card principale */}
+                <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+                    <form onSubmit={handleSubmit}>
+                        {/* Erreur générale */}
+                        {errors.general && (
+                            <div className="m-6 mb-0 bg-red-50 border-l-4 border-red-400 rounded-lg p-4">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-red-800 font-medium">{errors.general}</p>
                                     </div>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Informations personnelles */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                                    <User className="h-5 w-5 mr-2" style={{ color: primaryColor }} />
-                                    Informations personnelles
-                                </h3>
-
-                                <Input
-                                    label="Nom complet"
-                                    type="text"
-                                    placeholder="Votre nom complet"
-                                    value={formData.name}
-                                    onChange={handleInputChange('name')}
-                                    error={errors.name}
-                                    leftIcon={<User className="h-5 w-5" />}
-                                    required
-                                />
-
-                                <Input
-                                    label="Adresse email"
-                                    type="email"
-                                    placeholder="votre@email.com"
-                                    value={formData.email}
-                                    onChange={handleInputChange('email')}
-                                    error={errors.email}
-                                    leftIcon={<Mail className="h-5 w-5" />}
-                                    required
-                                />
-
-                                <Input
-                                    label="Matricule"
-                                    type="text"
-                                    placeholder="Votre matricule"
-                                    value={formData.matricule}
-                                    onChange={handleInputChange('matricule')}
-                                    error={errors.matricule}
-                                    leftIcon={<Users className="h-5 w-5" />}
-                                    required
-                                />
-
-                                <Input
-                                    label="Numéro de téléphone"
-                                    type="tel"
-                                    placeholder="+237 6XX XXX XXX"
-                                    value={formData.tel}
-                                    onChange={handleInputChange('tel')}
-                                    error={errors.tel}
-                                    leftIcon={<Phone className="h-5 w-5" />}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {/* COLONNE DROITE */}
-                        <div className="space-y-6">
-                            {/* Champs conditionnels pour les étudiants */}
-                            {formData.statut === 'etudiant' && (
-                                <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
-                                    <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-4">
-                                        <GraduationCap className="h-5 w-5 mr-2" style={{ color: primaryColor }} />
-                                        Informations académiques
-                                    </h3>
-
-                                    <div className="space-y-4">
-                                        <Select
-                                            label="Département"
-                                            placeholder="Sélectionnez votre département"
-                                            value={formData.departement || ''}
-                                            onChange={handleInputChange('departement')}
-                                            error={errors.departement}
-                                            options={DEPARTMENTS.map(dept => ({
-                                                value: dept.id,
-                                                label: dept.name
-                                            }))}
-                                            required
-                                        />
-
-                                        <Select
-                                            label="Niveau d'études"
-                                            placeholder="Sélectionnez votre niveau"
-                                            value={formData.niveau || ''}
-                                            onChange={handleInputChange('niveau')}
-                                            error={errors.niveau}
-                                            options={ACADEMIC_LEVELS.map(level => ({
-                                                value: level.id,
-                                                label: level.name
-                                            }))}
-                                            required
-                                        />
-                                    </div>
+                        <div className="p-8">
+                            {/* Section Avatar & Statut */}
+                            <div className="mb-8">
+                                <div className="flex items-center mb-6">
+                                    <Camera className="h-6 w-6 mr-3" style={{ color: primaryColor }} />
+                                    <h2 className="text-xl font-semibold text-gray-800">Profil & Statut</h2>
+                                    <div className="flex-1 ml-4 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
                                 </div>
-                            )}
 
-                            {/* Espace pour les enseignants */}
-                            {formData.statut === 'enseignant' && (
-                                <div className="bg-green-50 rounded-xl p-6 shadow-sm border border-green-200">
-                                    <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-4">
-                                        <UserCheck className="h-5 w-5 mr-2" style={{ color: primaryColor }} />
-                                        Informations professionnelles
-                                    </h3>
-                                    <div className="text-center py-8">
-                                        <BookOpen className="h-12 w-12 mx-auto mb-3 text-green-600" />
-                                        <p className="text-green-700">
-                                            En tant qu'enseignant, vous aurez accès à des privilèges étendus
-                                            pour la gestion des ressources académiques.
+                                <div className="flex flex-col xl:flex-row xl:gap-8 xl:items-center">
+                                    {/* Avatar */}
+                                    <div className="flex-1 flex flex-col items-center xl:items-start">
+                                        <div className="flex justify-center xl:justify-start w-full">
+                                            <AvatarUploader
+                                                currentAvatar={avatarUrl}
+                                                onAvatarUploaded={handleAvatarUploaded}
+                                                onAvatarRemoved={handleAvatarRemoved}
+                                                size="xl"
+                                                userName={formData.name}
+                                                userId="temp-user"
+                                            />
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-3 text-center xl:text-left max-w-xs">
+                                            Ajoutez une photo de profil pour personnaliser votre compte
                                         </p>
                                     </div>
-                                </div>
-                            )}
 
-                            {/* Mots de passe */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                                    <Lock className="h-5 w-5 mr-2" style={{ color: primaryColor }} />
-                                    Sécurité
-                                </h3>
+                                    {/* Séparateur vertical pour desktop */}
+                                    <div className="hidden xl:flex xl:items-center xl:justify-center">
+                                        <div
+                                            className="w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"
+                                            style={{ height: '200px' }}
+                                        ></div>
+                                    </div>
 
-                                <Input
-                                    label="Mot de passe"
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Votre mot de passe"
-                                    value={formData.password}
-                                    onChange={handleInputChange('password')}
-                                    error={errors.password}
-                                    leftIcon={<Lock className="h-5 w-5" />}
-                                    rightIcon={
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                                        >
-                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                        </button>
-                                    }
-                                    autoComplete="new-password"
-                                    required
-                                />
+                                    {/* Séparateur horizontal pour mobile */}
+                                    <div className="xl:hidden my-6">
+                                        <div className="border-t border-gray-200"></div>
+                                    </div>
 
-                                <Input
-                                    label="Confirmer le mot de passe"
-                                    type={showConfirmPassword ? 'text' : 'password'}
-                                    placeholder="Confirmez votre mot de passe"
-                                    value={formData.confirmPassword}
-                                    onChange={handleInputChange('confirmPassword')}
-                                    error={errors.confirmPassword}
-                                    leftIcon={<Lock className="h-5 w-5" />}
-                                    rightIcon={
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                                        >
-                                            {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                        </button>
-                                    }
-                                    autoComplete="new-password"
-                                    required
-                                />
-                            </div>
-
-                            {/* Avantages */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border">
-                                <h3 className="font-semibold text-gray-800 mb-4 text-center">
-                                    En rejoignant {organizationName}, vous bénéficiez de :
-                                </h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center">
-                                        <div
-                                            className="w-3 h-3 rounded-full mr-3"
-                                            style={{ backgroundColor: primaryColor }}
-                                        ></div>
-                                        <span className="text-gray-600 text-sm">Accès à 25 000+ livres</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div
-                                            className="w-3 h-3 rounded-full mr-3"
-                                            style={{ backgroundColor: primaryColor }}
-                                        ></div>
-                                        <span className="text-gray-600 text-sm">Réservation en ligne 24h/24</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div
-                                            className="w-3 h-3 rounded-full mr-3"
-                                            style={{ backgroundColor: primaryColor }}
-                                        ></div>
-                                        <span className="text-gray-600 text-sm">Support client personnalisé</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div
-                                            className="w-3 h-3 rounded-full mr-3"
-                                            style={{ backgroundColor: primaryColor }}
-                                        ></div>
-                                        <span className="text-gray-600 text-sm">Recommandations personnalisées</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div
-                                            className="w-3 h-3 rounded-full mr-3"
-                                            style={{ backgroundColor: primaryColor }}
-                                        ></div>
-                                        <span className="text-gray-600 text-sm">Notifications de nouveautés</span>
+                                    {/* Switch Statut */}
+                                    <div className="flex-1 flex flex-col justify-center">
+                                        <h3 className="text-lg font-medium text-gray-800 mb-4 text-center xl:text-left">
+                                            Vous êtes <span style={{ color: primaryColor }}>*</span>
+                                        </h3>
+                                        <div className="relative">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleStatusSwitch('etudiant')}
+                                                    className={`relative overflow-hidden group flex items-center justify-center cursor-pointer py-4 px-6 rounded-xl font-medium transition-all duration-300 border-2 ${
+                                                        formData.statut === 'etudiant'
+                                                            ? 'text-white shadow-lg transform scale-105'
+                                                            : 'text-gray-600 border-gray-200 hover:border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: formData.statut === 'etudiant' ? primaryColor : undefined,
+                                                        borderColor: formData.statut === 'etudiant' ? primaryColor : undefined
+                                                    }}
+                                                >
+                                                    <GraduationCap className="h-5 w-5 mr-2" />
+                                                    <span>Étudiant(e)</span>
+                                                    {formData.statut === 'etudiant' && (
+                                                        <div className="absolute inset-0 bg-white bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleStatusSwitch('enseignant')}
+                                                    className={`relative overflow-hidden group cursor-pointer flex items-center justify-center py-4 px-6 rounded-xl font-medium transition-all duration-300 border-2 ${
+                                                        formData.statut === 'enseignant'
+                                                            ? 'text-white shadow-lg transform scale-105'
+                                                            : 'text-gray-600 border-gray-200 hover:border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: formData.statut === 'enseignant' ? secondaryColor : undefined,
+                                                        borderColor: formData.statut === 'enseignant' ? secondaryColor : undefined
+                                                    }}
+                                                >
+                                                    <UserCheck className="h-5 w-5 mr-2" />
+                                                    <span>Enseignant(e)</span>
+                                                    {formData.statut === 'enseignant' && (
+                                                        <div className="absolute inset-0 bg-white bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Boutons d'action - En bas, pleine largeur */}
-                    <div className="mt-8 space-y-4">
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="lg"
-                            fullWidth
-                            loading={loading}
-                            leftIcon={<GraduationCap className="h-5 w-5" />}
-                            className="py-4 text-lg font-semibold"
-                        >
-                            {loading ? 'Inscription en cours...' : 'Créer mon compte'}
-                        </Button>
+                            {/* Séparateur */}
+                            <div className="my-8 border-t border-gray-200"></div>
 
-                        {/* Séparateur */}
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300"></div>
+                            {/* Section Informations */}
+                            <div className="flex flex-col xl:flex-row xl:gap-8">
+                                {/* COLONNE GAUCHE */}
+                                <div className="flex-1 space-y-6">
+                                    {/* Informations personnelles */}
+                                    <div>
+                                        <div className="flex items-center mb-6">
+                                            <User className="h-6 w-6 mr-3" style={{ color: primaryColor }} />
+                                            <h2 className="text-xl font-semibold text-gray-800">Informations personnelles</h2>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <Input
+                                                label="Nom complet"
+                                                type="text"
+                                                placeholder="Votre nom complet"
+                                                value={formData.name}
+                                                onChange={handleInputChange('name')}
+                                                error={errors.name}
+                                                leftIcon={<User className="h-5 w-5" />}
+                                                required
+                                            />
+
+                                            <Input
+                                                label="Adresse email"
+                                                type="email"
+                                                placeholder="votre@email.com"
+                                                value={formData.email}
+                                                onChange={handleInputChange('email')}
+                                                error={errors.email}
+                                                leftIcon={<Mail className="h-5 w-5" />}
+                                                required
+                                            />
+
+                                            <Input
+                                                label="Matricule"
+                                                type="text"
+                                                placeholder="Votre matricule"
+                                                value={formData.matricule}
+                                                onChange={handleInputChange('matricule')}
+                                                error={errors.matricule}
+                                                leftIcon={<Users className="h-5 w-5" />}
+                                                required
+                                            />
+
+                                            <Input
+                                                label="Numéro de téléphone"
+                                                type="tel"
+                                                placeholder="+237 6XX XXX XXX"
+                                                value={formData.tel}
+                                                onChange={handleInputChange('tel')}
+                                                error={errors.tel}
+                                                leftIcon={<Phone className="h-5 w-5" />}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SÉPARATEUR VERTICAL */}
+                                <div className="hidden xl:flex xl:items-center xl:justify-center xl:px-4">
+                                    <div
+                                        className="w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"
+                                        style={{ height: '500px' }}
+                                    ></div>
+                                </div>
+
+                                {/* SÉPARATEUR HORIZONTAL MOBILE */}
+                                <div className="xl:hidden my-8">
+                                    <div className="border-t border-gray-200"></div>
+                                </div>
+
+                                {/* COLONNE DROITE */}
+                                <div className="flex-1 space-y-6">
+                                    {/* Informations académiques pour étudiants */}
+                                    {formData.statut === 'etudiant' && (
+                                        <div>
+                                            <div className="flex items-center mb-6">
+                                                <GraduationCap className="h-6 w-6 mr-3" style={{ color: primaryColor }} />
+                                                <h2 className="text-xl font-semibold text-gray-800">Informations académiques</h2>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <Select
+                                                    label="Département"
+                                                    placeholder="Sélectionnez votre département"
+                                                    value={formData.departement || ''}
+                                                    onChange={handleInputChange('departement')}
+                                                    error={errors.departement}
+                                                    options={DEPARTMENTS.map(dept => ({
+                                                        value: dept.id,
+                                                        label: dept.name
+                                                    }))}
+                                                    required
+                                                />
+
+                                                <Select
+                                                    label="Niveau d'études"
+                                                    placeholder="Sélectionnez votre niveau"
+                                                    value={formData.niveau || ''}
+                                                    onChange={handleInputChange('niveau')}
+                                                    error={errors.niveau}
+                                                    options={ACADEMIC_LEVELS.map(level => ({
+                                                        value: level.id,
+                                                        label: level.name
+                                                    }))}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Informations pour enseignants */}
+                                    {formData.statut === 'enseignant' && (
+                                        <div>
+                                            <div className="flex items-center mb-6">
+                                                <UserCheck className="h-6 w-6 mr-3" style={{ color: primaryColor }} />
+                                                <h2 className="text-xl font-semibold text-gray-800">Privilèges enseignant</h2>
+                                            </div>
+
+                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                                                <div className="text-center">
+                                                    <BookOpen className="h-16 w-16 mx-auto mb-4 text-green-600" />
+                                                    <h3 className="text-lg font-semibold text-green-800 mb-2">Accès privilégié</h3>
+                                                    <p className="text-green-700 text-sm leading-relaxed">
+                                                        En tant qu'enseignant, vous bénéficiez d'un accès étendu aux ressources,
+                                                        de privilèges de gestion et d'outils pédagogiques avancés.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Sécurité */}
+                                    <div>
+                                        <div className="flex items-center mb-6">
+                                            <Shield className="h-6 w-6 mr-3" style={{ color: primaryColor }} />
+                                            <h2 className="text-xl font-semibold text-gray-800">Sécurité</h2>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <Input
+                                                label="Mot de passe"
+                                                type={showPassword ? 'text' : 'password'}
+                                                placeholder="Votre mot de passe"
+                                                value={formData.password}
+                                                onChange={handleInputChange('password')}
+                                                error={errors.password}
+                                                leftIcon={<Lock className="h-5 w-5" />}
+                                                rightIcon={
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff className="h-5 w-5 cursor-pointer" /> : <Eye className="h-5 w-5 cursor-pointer" />}
+                                                    </button>
+                                                }
+                                                autoComplete="new-password"
+                                                required
+                                            />
+
+                                            <Input
+                                                label="Confirmer le mot de passe"
+                                                type={showConfirmPassword ? 'text' : 'password'}
+                                                placeholder="Confirmez votre mot de passe"
+                                                value={formData.confirmPassword}
+                                                onChange={handleInputChange('confirmPassword')}
+                                                error={errors.confirmPassword}
+                                                leftIcon={<Lock className="h-5 w-5" />}
+                                                rightIcon={
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                                    >
+                                                        {showConfirmPassword ? <EyeOff className="h-5 w-5 cursor-pointer" /> : <Eye className="h-5 w-5 cursor-pointer" />}
+                                                    </button>
+                                                }
+                                                autoComplete="new-password"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-gray-100 text-gray-500">
-                                    Vous avez déjà un compte ?
-                                </span>
+
+                            {/* Séparateur */}
+                            <div className="my-8 border-t border-gray-200"></div>
+
+                            {/* Boutons d'action */}
+                            <div className="space-y-4">
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
+                                    loading={loading}
+                                    leftIcon={<GraduationCap className="h-5 w-5" />}
+                                    className="py-4 text-lg font-semibold cursor-pointer shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
+                                >
+                                    {loading ? 'Création en cours...' : 'Créer mon compte'}
+                                </Button>
+
+                                <div className="text-center">
+                                    <span className="text-gray-500 text-sm">Vous avez déjà un compte ?</span>
+                                    <button
+                                        type="button"
+                                        onClick={onSwitchToLogin}
+                                        className="ml-2 font-medium cursor-pointer hover:underline transition-colors"
+                                        style={{ color: primaryColor }}
+                                    >
+                                        Se connecter
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                    </form>
+                </div>
 
-                        {/* Bouton de retour à la connexion */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="lg"
-                            fullWidth
-                            onClick={onSwitchToLogin}
-                            leftIcon={<ArrowLeft className="h-5 w-5" />}
-                        >
-                            Retour à la connexion
-                        </Button>
-                    </div>
-                </form>
+                {/* Footer */}
+                <div className="text-center mt-8 text-sm text-gray-500">
+                    <p>En créant un compte, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.</p>
+                </div>
             </div>
         </div>
     );

@@ -168,7 +168,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             onClick={() => setShowPassword(!showPassword)}
                             className="text-gray-400 hover:text-gray-600 transition-colors"
                         >
-                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            {showPassword ? <EyeOff className="h-5 w-5 cursor-pointer" /> : <Eye className="h-5 w-5" />}
                         </button>
                     }
                     autoComplete="current-password"
@@ -182,7 +182,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             type="checkbox"
                             checked={formData.rememberMe}
                             onChange={handleInputChange('rememberMe')}
-                            className="h-4 w-4 rounded border-gray-300 focus:ring-2 transition-colors"
+                            className="h-4 w-4 rounded cursor-pointer border-gray-300 focus:ring-2 transition-colors"
                             style={{
                                 color:`${primaryColor}30`
                             }}
@@ -207,6 +207,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     size="lg"
                     fullWidth
                     loading={loading}
+                    className="cursor-pointer"
                     leftIcon={<LogIn className="h-5 w-5" />}
                 >
                     {loading ? 'Connexion en cours...' : 'Se connecter'}
@@ -230,6 +231,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     variant="outline"
                     size="lg"
                     fullWidth
+                    className="cursor-pointer"
                     onClick={onSwitchToRegister}
                 >
                     Créer un compte
@@ -248,7 +250,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             className="w-2 h-2 rounded-full mr-2"
                             style={{ backgroundColor: primaryColor }}
                         ></div>
-                        Accès à plus de 25 000 livres
+                        Accès à plus de 500 livres
                     </li>
                     <li className="flex items-center">
                         <div

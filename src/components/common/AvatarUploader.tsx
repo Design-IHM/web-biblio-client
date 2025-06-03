@@ -289,7 +289,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                     {/* Overlay avec icône au survol */}
                     {!disabled && !isUploading && (
                         <div className={`absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center ${isDragging ? 'opacity-100' : ''}`}>
-                            <div className="text-center text-white">
+                            <div className="text-center text-white cursor-pointer">
                                 <Camera
                                     size={sizeConfig.icon}
                                     className="mx-auto mb-1"
