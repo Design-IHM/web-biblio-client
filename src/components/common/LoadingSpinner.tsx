@@ -1,5 +1,5 @@
 import React from 'react';
-import { useConfig } from '../contexts/ConfigContext';
+import { useConfig } from '../../contexts/ConfigContext';
 
 interface LoadingSpinnerProps {
     size?: 'sm' | 'md' | 'lg' | 'xl';

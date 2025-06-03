@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ArrowRight, LogIn, Book, Users, Clock } from 'lucide-react';
-import { useConfig } from '../contexts/ConfigContext';
-import heroImage from "../assets/images/home/hero_image.jpg"
-import book1 from "../assets/images/home/book1.jpg"
-import book2 from "../assets/images/home/book2.jpg"
-import book3 from "../assets/images/home/book3.jpg"
+import { useConfig } from '../../contexts/ConfigContext.tsx';
+import heroImage from "../../assets/images/home/hero_image.jpg"
+import book1 from "../../assets/images/home/book1.jpg"
+import book2 from "../../assets/images/home/book2.jpg"
+import book3 from "../../assets/images/home/book3.jpg"
 
 const Hero = () => {
     const [scrollY, setScrollY] = useState(0);

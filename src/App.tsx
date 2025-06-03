@@ -1,9 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from './contexts/ConfigContext';
-import DebugConfig from './components/DebugConfig'; // Import du composant de débogage
+// import DebugConfig from './components/DebugConfig';
 import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
-import AuthenticationPage from './pages/AuthenticationPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProfilePage from './pages/dashboard/Profile';
@@ -12,6 +11,7 @@ import StatisticsPage from './pages/dashboard/StatisticsPage';
 import CartPage from './pages/dashboard/CartPage';
 import CataloguePage from './pages/CataloguePage';
 import BookDetailsPage from './pages/BookDetailsPage';
+import AuthPage from "./pages/AuthPage.tsx";
 
 const router = createBrowserRouter([
     {
@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     },
     {
         path: '/auth',
-        element: <AuthenticationPage />,
+        element: <AuthPage />,
     },
     {
         path: '/catalogue',
@@ -72,7 +72,7 @@ function App() {
     return (
         <ConfigProvider>
             <RouterProvider router={router} />
-            <DebugConfig />
+            {/*<DebugConfig />*/}
         </ConfigProvider>
     );
 }

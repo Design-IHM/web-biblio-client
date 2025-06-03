@@ -1,5 +1,5 @@
-import { useConfig } from '../contexts/ConfigContext';
-import { configService } from '../services/configService';
+import { useConfig } from '../../contexts/ConfigContext.tsx';
+import { configService } from '../../services/configService.ts';
 import { Mail, Phone, Facebook, Instagram, Clock, MapPin } from 'lucide-react';
 
 const Footer = () => {
