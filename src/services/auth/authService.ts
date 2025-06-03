@@ -11,16 +11,14 @@ import {
     setDoc,
     getDoc,
     updateDoc,
-    Timestamp, getDocs, collection
+    Timestamp,
+    getDocs,
+    collection
 } from 'firebase/firestore';
-import {
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from 'firebase/storage';
 
 import { auth, db } from '../../configs/firebase';
 import { configService } from '../configService';
+import { cloudinaryService } from '../cloudinaryService';
 import {BiblioUser, RegisterFormData, LoginFormData, AuthResponse, EtatValue} from '../../types/auth';
 
 class AuthService {
@@ -30,9 +28,17 @@ class AuthService {
      */
     async signUp(data: RegisterFormData): Promise<AuthResponse> {
         try {
+            console.log('🚀 Début inscription:', {
+                email: data.email,
+                statut: data.statut,
+                niveau: data.niveau,
+                departement: data.departement
+            });
+
             // Récupérer la configuration pour MaximumSimultaneousLoans
             const orgSettings = await configService.getOrgSettings();
             const maxLoans = orgSettings.MaximumSimultaneousLoans || 3;
+            console.log('📊 Paramètres org:', { maxLoans });
 
             // Créer l'utilisateur Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(
@@ -42,18 +48,48 @@ class AuthService {
             );
 
             const firebaseUser = userCredential.user;
+            console.log('✅ Utilisateur Firebase créé:', firebaseUser.uid);
 
-            // Upload de l'image de profil si fournie
+            // Upload de l'image de profil si fournie (via Cloudinary)
             let profilePictureUrl = '';
             if (data.profilePicture) {
-                profilePictureUrl = await this.uploadProfilePicture(
-                    data.profilePicture,
-                    firebaseUser.uid
-                );
+                console.log('📸 Upload de l\'avatar en cours...');
+
+                // Convertir l'URL en File si nécessaire
+                let fileToUpload: File;
+                if (typeof data.profilePicture === 'string') {
+                    // Si c'est déjà une URL Cloudinary, on la garde
+                    profilePictureUrl = data.profilePicture;
+                } else {
+                    // Si c'est un File, on l'upload
+                    fileToUpload = data.profilePicture;
+                    const uploadResponse = await cloudinaryService.uploadAvatar(
+                        fileToUpload,
+                        firebaseUser.uid
+                    );
+
+                    if (uploadResponse.success && uploadResponse.url) {
+                        profilePictureUrl = uploadResponse.url;
+                        console.log('✅ Avatar uploadé:', profilePictureUrl);
+                    } else {
+                        console.warn('⚠️ Échec upload avatar:', uploadResponse.error);
+                    }
+                }
             }
 
             // Créer les tableaux d'état dynamiquement selon MaximumSimultaneousLoans
             const userStateData = this.createUserStateData(maxLoans);
+            console.log('📋 États utilisateur créés:', userStateData);
+
+            // CORRECTION: S'assurer que niveau et departement ne sont jamais undefined
+            const niveau = data.statut === 'etudiant' ? (data.niveau || '') : '';
+            const departement = data.statut === 'etudiant' ? (data.departement || '') : '';
+
+            console.log('🎓 Données académiques:', {
+                statut: data.statut,
+                niveau,
+                departement
+            });
 
             // Créer le document utilisateur dans Firestore
             const biblioUser: BiblioUser = {
@@ -61,8 +97,8 @@ class AuthService {
                 name: data.name,
                 matricule: data.matricule,
                 email: data.email,
-                niveau: data.statut === 'etudiant' ? data.niveau : undefined,
-                departement: data.statut === 'etudiant' ? data.departement : undefined,
+                niveau: niveau,
+                departement: departement,
                 tel: data.tel,
                 createdAt: Timestamp.now(),
                 lastLoginAt: Timestamp.now(),
@@ -73,17 +109,37 @@ class AuthService {
                 statut: data.statut
             };
 
+            console.log('👤 Données utilisateur finales à sauvegarder:', {
+                id: biblioUser.id,
+                email: biblioUser.email,
+                statut: biblioUser.statut,
+                niveau: biblioUser.niveau,
+                departement: biblioUser.departement,
+                hasProfilePicture: !!biblioUser.profilePicture
+            });
+
             // Sauvegarder dans Firestore
             await setDoc(doc(db, 'BiblioUser', firebaseUser.uid), biblioUser);
+            console.log('✅ Utilisateur sauvegardé dans Firestore');
+
+            // Vérification de la sauvegarde
+            const savedDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
+            if (savedDoc.exists()) {
+                console.log('✅ Vérification: Document bien sauvegardé:', savedDoc.data());
+            } else {
+                console.error('❌ Vérification: Document non trouvé après sauvegarde');
+            }
 
             // Mettre à jour le profil Firebase Auth
             await updateProfile(firebaseUser, {
                 displayName: data.name,
                 photoURL: profilePictureUrl
             });
+            console.log('✅ Profil Firebase Auth mis à jour');
 
             // Envoyer l'email de vérification
             await firebaseSendEmailVerification(firebaseUser);
+            console.log('✅ Email de vérification envoyé');
 
             return {
                 success: true,
@@ -92,7 +148,14 @@ class AuthService {
             };
 
         } catch (error: unknown) {
-            console.error('Erreur inscription:', error);
+            console.error('❌ Erreur inscription:', error);
+
+            // Log détaillé de l'erreur
+            if (error instanceof Error) {
+                console.error('Message:', error.message);
+                console.error('Stack:', error.stack);
+            }
+
             return {
                 success: false,
                 message: this.getErrorMessage(error as string)
@@ -105,6 +168,8 @@ class AuthService {
      */
     async signIn(data: LoginFormData): Promise<AuthResponse> {
         try {
+            console.log('🔐 Tentative de connexion:', data.email);
+
             const userCredential = await signInWithEmailAndPassword(
                 auth,
                 data.email,
@@ -112,15 +177,23 @@ class AuthService {
             );
 
             const firebaseUser = userCredential.user;
+            console.log('✅ Utilisateur Firebase connecté:', firebaseUser.uid);
 
             // Récupérer les données utilisateur depuis Firestore
             const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
 
             if (!userDoc.exists()) {
+                console.error('❌ Utilisateur non trouvé dans Firestore');
                 throw new Error('Utilisateur non trouvé dans la base de données');
             }
 
             const biblioUser = userDoc.data() as BiblioUser;
+            console.log('✅ Données utilisateur récupérées:', {
+                email: biblioUser.email,
+                statut: biblioUser.statut,
+                niveau: biblioUser.niveau,
+                departement: biblioUser.departement
+            });
 
             // Mettre à jour la dernière connexion
             await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), {
@@ -134,7 +207,7 @@ class AuthService {
             };
 
         } catch (error: unknown) {
-            console.error('Erreur connexion:', error);
+            console.error('❌ Erreur connexion:', error);
             return {
                 success: false,
                 message: this.getErrorMessage(error as string)
@@ -148,8 +221,9 @@ class AuthService {
     async signOut(): Promise<void> {
         try {
             await firebaseSignOut(auth);
+            console.log('✅ Déconnexion réussie');
         } catch (error) {
-            console.error('Erreur déconnexion:', error);
+            console.error('❌ Erreur déconnexion:', error);
             throw error;
         }
     }
@@ -165,8 +239,9 @@ class AuthService {
             }
 
             await firebaseSendEmailVerification(user);
+            console.log('✅ Email de vérification envoyé');
         } catch (error) {
-            console.error('Erreur envoi email:', error);
+            console.error('❌ Erreur envoi email:', error);
             throw error;
         }
     }
@@ -177,8 +252,9 @@ class AuthService {
     async resetPassword(email: string): Promise<void> {
         try {
             await sendPasswordResetEmail(auth, email);
+            console.log('✅ Email de réinitialisation envoyé');
         } catch (error) {
-            console.error('Erreur reset password:', error);
+            console.error('❌ Erreur reset password:', error);
             throw error;
         }
     }
@@ -195,9 +271,17 @@ class AuthService {
 
             if (!userDoc.exists()) return null;
 
-            return { ...userDoc.data(), id: firebaseUser.uid } as BiblioUser;
+            const userData = userDoc.data() as BiblioUser;
+            console.log('📤 Données utilisateur récupérées:', {
+                email: userData.email,
+                statut: userData.statut,
+                niveau: userData.niveau,
+                departement: userData.departement
+            });
+
+            return { ...userData, id: firebaseUser.uid };
         } catch (error) {
-            console.error('Erreur récupération utilisateur:', error);
+            console.error('❌ Erreur récupération utilisateur:', error);
             return null;
         }
     }
@@ -212,34 +296,27 @@ class AuthService {
                 throw new Error('Aucun utilisateur connecté');
             }
 
+            // S'assurer que niveau et departement ne sont jamais undefined
+            const updateData = { ...data };
+            if (updateData.niveau === undefined) updateData.niveau = '';
+            if (updateData.departement === undefined) updateData.departement = '';
+
             // Mettre à jour dans Firestore
-            await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), data);
+            await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), updateData);
 
             // Mettre à jour le profil Firebase Auth si nécessaire
-            const updateData: { displayName?: string; photoURL?: string } = {};
-            if (data.name) updateData.displayName = data.name;
-            if (data.profilePicture) updateData.photoURL = data.profilePicture;
+            const authUpdateData: { displayName?: string; photoURL?: string } = {};
+            if (data.name) authUpdateData.displayName = data.name;
+            if (data.profilePicture) authUpdateData.photoURL = data.profilePicture;
 
-            if (Object.keys(updateData).length > 0) {
-                await updateProfile(firebaseUser, updateData);
+            if (Object.keys(authUpdateData).length > 0) {
+                await updateProfile(firebaseUser, authUpdateData);
             }
-        } catch (error) {
-            console.error('Erreur mise à jour profil:', error);
-            throw error;
-        }
-    }
 
-    /**
-     * Upload d'image de profil
-     */
-    private async uploadProfilePicture(file: File, userId: string): Promise<string> {
-        try {
-            const storageRef = ref(storage, `profile-pictures/${userId}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            return await getDownloadURL(snapshot.ref);
+            console.log('✅ Profil utilisateur mis à jour');
         } catch (error) {
-            console.error('Erreur upload image:', error);
-            throw new Error('Échec de l\'upload de l\'image de profil');
+            console.error('❌ Erreur mise à jour profil:', error);
+            throw error;
         }
     }
 
@@ -251,9 +328,10 @@ class AuthService {
 
         for (let i = 1; i <= maxLoans; i++) {
             stateData[`tabEtat${i}`] = [];
-            stateData[`etat${i}`] = 'ras';
+            stateData[`etat${i}`] = 'ras' as EtatValue;
         }
 
+        console.log('📊 États créés pour', maxLoans, 'emprunts max:', stateData);
         return stateData;
     }
 
@@ -283,11 +361,9 @@ class AuthService {
      */
     async validateMatricule(matricule: string): Promise<boolean> {
         try {
-            // Cette méthode peut être étendue pour vérifier l'unicité du matricule
-            // ou valider selon un format spécifique
             return matricule.length >= 6;
         } catch (error) {
-            console.error('Erreur validation matricule:', error);
+            console.error('❌ Erreur validation matricule:', error);
             return false;
         }
     }
@@ -299,10 +375,9 @@ class AuthService {
         try {
             const querySnapshot = await getDocs(collection(db, 'BiblioUser'));
             const emailExists = querySnapshot.docs.some((doc) => doc.data().email === email);
-            if (emailExists) return false;
-            return true;
+            return !emailExists;
         } catch (error) {
-            console.error('Erreur vérification email:', error);
+            console.error('❌ Erreur vérification email:', error);
             return false;
         }
     }

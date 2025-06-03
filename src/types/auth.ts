@@ -21,8 +21,8 @@ export interface BiblioUser {
     name: string;
     matricule: string;
     email: string;
-    niveau?: string;
-    departement?: string;
+    niveau: string;
+    departement: string;
     tel: string;
     createdAt: Timestamp;
     lastLoginAt: Timestamp;
@@ -52,7 +52,7 @@ export interface RegisterFormData {
     statut: UserStatus;
     departement?: string;
     niveau?: string;
-    profilePicture?: string;
+    profilePicture?: string | File; // Accepte string (URL) ou File
 }
 
 export interface LoginFormData {
@@ -101,4 +101,16 @@ export const ACADEMIC_LEVELS: AcademicLevel[] = [
     { id: 'master1', name: 'Master 1', code: 'M1' },
     { id: 'master2', name: 'Master 2', code: 'M2' },
     { id: 'doctorat', name: 'Doctorat', code: 'DOC' }
+];
+
+// Constantes pour les départements
+export const DEPARTMENTS: Department[] = [
+    { id: 'informatique', name: 'Informatique', code: 'INFO' },
+    { id: 'mathematiques', name: 'Mathématiques', code: 'MATH' },
+    { id: 'physique', name: 'Physique', code: 'PHYS' },
+    { id: 'chimie', name: 'Chimie', code: 'CHIM' },
+    { id: 'biologie', name: 'Biologie', code: 'BIO' },
+    { id: 'genie_civil', name: 'Génie Civil', code: 'GC' },
+    { id: 'genie_electrique', name: 'Génie Électrique', code: 'GE' },
+    { id: 'genie_mecanique', name: 'Génie Mécanique', code: 'GM' }
 ];
