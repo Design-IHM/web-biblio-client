@@ -41,7 +41,6 @@ const Footer = () => {
     }
 
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
-    const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
 
     // Générer les horaires d'ouverture pour la semaine
     const getWeekSchedule = () => {
@@ -68,7 +67,7 @@ const Footer = () => {
     return (
         <footer
             className="text-white py-12"
-            style={{ backgroundColor: secondaryColor }}
+            style={{ backgroundColor: '#222449' }}
         >
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

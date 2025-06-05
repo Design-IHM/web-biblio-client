@@ -1,159 +1,427 @@
-// src/pages/BookDetailsPage.jsx
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import BookDetailsHeader from '../components/BookDetailsHeader';
-import BookDetailsTabs from '../components/BookDetailsTabs';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useConfig } from '../contexts/ConfigContext';
+import { authService } from '../services/auth/authService';
+import { BiblioUser } from '../types/auth';
+import { Timestamp, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { db } from '../configs/firebase';
 
-const BookDetailsPage = () => {
-  const { id } = useParams();
-  const [book, setBook] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// Import des composants
+import BookHeader from '../components/books/BookHeader';
+import BookDescription from '../components/books/BookDescription';
+import CommentsSection from '../components/books/CommentsSection';
+import CommentModal from '../components/books/CommentModal';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
-  useEffect(() => {
-    // Here you would fetch the book details from your API
-    // This is a mock implementation
-    const fetchBook = async () => {
-      try {
-        setLoading(true);
-        
-        // For demo purposes - replace this with your actual API call
-        // Example: const response = await fetch(`/api/books/${id}`);
-        // const data = await response.json();
-        
-        // Simulating API response with timeout
-        setTimeout(() => {
-          // Mock data for demonstration
-          const mockBook = {
-            id: id,
-            title: "Le Comte de Monte-Cristo",
-            author: "Alexandre Dumas",
-            coverImg: "/api/placeholder/300/450",
-            rating: 4.7,
-            year: "1844",
-            type: "book",
-            isAvailable: true,
-            pages: 1276,
-            publisher: "Gallimard",
-            summary: "Edmond Dantès, injustement emprisonné au château d'If, s'évade après quatorze ans et, ayant hérité d'un trésor caché dans l'île de Monte-Cristo, se fait passer pour le comte de Monte-Cristo afin d'accomplir sa vengeance...",
-            tags: ["Classique", "Aventure", "Vengeance", "Historique"],
-            isbn: "978-2070413119",
-            language: "Français",
-            originalTitle: "Le Comte de Monte-Cristo",
-            format: "Numérique et papier",
-            publicationDate: "1844-1846",
-            edition: "Édition critique",
-            collection: "Folio Classique",
-            tableOfContents: [
-              "Chapitre I : Marseille — L'arrivée",
-              "Chapitre II : Le père et le fils",
-              "Chapitre III : Les Catalans",
-              "Chapitre IV : Complot",
-              "Chapitre V : Le repas des fiançailles"
-            ],
-            reviews: [
-              {
-                userName: "Marie Leclerc",
-                userAvatar: "/api/placeholder/40/40",
-                rating: 5,
-                date: "12 mars 2023",
-                comment: "Un chef-d'œuvre absolu de la littérature française. L'intrigue est parfaitement construite et les personnages sont inoubliables.",
-                helpful: 24,
-                replies: [
-                  {
-                    userName: "Paul Durand",
-                    userAvatar: "/api/placeholder/32/32",
-                    date: "15 mars 2023",
-                    comment: "Totalement d'accord ! C'est mon roman préféré de tous les temps."
-                  }
-                ]
-              },
-              {
-                userName: "Thomas Martin",
-                userAvatar: "/api/placeholder/40/40",
-                rating: 4,
-                date: "27 février 2023",
-                comment: "Excellent roman d'aventure, même si certains passages sont un peu longs.",
-                helpful: 11
-              }
-            ],
-            comments: [
-              {
-                userName: "Sophie Bernard",
-                userAvatar: "/api/placeholder/40/40",
-                date: "5 avril 2023",
-                text: "Je viens de terminer le chapitre 27 et je suis complètement captivée par l'intrigue !",
-                likes: 8,
-                replies: [
-                  {
-                    userName: "Julie Moreau",
-                    userAvatar: "/api/placeholder/32/32",
-                    date: "6 avril 2023",
-                    text: "Attends de voir la suite, c'est encore mieux !",
-                    likes: 3
-                  }
-                ]
-              }
-            ]
-          };
-          
-          setBook(mockBook);
-          setLoading(false);
-        }, 800);
-        
-      } catch (err) {
-        setError("Impossible de charger les détails du livre. Veuillez réessayer plus tard.");
-        setLoading(false);
-      }
+// Import des interfaces depuis BookCard
+import { BiblioBook, Comment, CommentWithUserData } from '../components/books/BookCard';
+
+const BookDetailsPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { orgSettings } = useConfig();
+
+    // États principaux
+    const [book, setBook] = useState<BiblioBook | null>(null);
+    const [commentsWithUserData, setCommentsWithUserData] = useState<CommentWithUserData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<BiblioUser | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // États pour les interactions
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isReserving, setIsReserving] = useState(false);
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+    const [loadingComments, setLoadingComments] = useState(false);
+
+    const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
+    const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
+
+    // Charger les données utilisateur
+    useEffect(() => {
+        const loadUserData = async () => {
+            try {
+                const user = await authService.getCurrentUser();
+                if (user) {
+                    setCurrentUser(user);
+                    setIsAuthenticated(true);
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateur:', error);
+            }
+        };
+
+        loadUserData();
+    }, [id]);
+
+    // Fonction pour récupérer les données utilisateur d'un commentaire
+    const getUserDataForComment = async (nomUser: string): Promise<{ userName: string; userAvatar?: string }> => {
+        try {
+            // Si nomUser correspond à un nom d'utilisateur, essayez de récupérer l'avatar
+            // Ici vous pourriez faire une requête pour chercher l'utilisateur par nom
+            // Pour l'instant, on retourne juste le nomUser
+            return {
+                userName: nomUser || 'Utilisateur anonyme',
+                userAvatar: undefined // Vous pouvez implémenter la logique pour récupérer l'avatar
+            };
+        } catch (error) {
+            console.error('Erreur récupération données utilisateur:', error);
+            return { userName: nomUser || 'Utilisateur anonyme' };
+        }
     };
 
-    fetchBook();
-  }, [id]);
+    // Charger les commentaires avec les données utilisateur
+    const loadCommentsWithUserData = async (comments: Comment[]) => {
+        setLoadingComments(true);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+        try {
+            const commentsWithData = await Promise.all(
+                comments.map(async (comment, index) => {
+                    const userData = await getUserDataForComment(comment.nomUser);
+                    return {
+                        ...comment,
+                        id: `comment_${index}_${comment.heure.toMillis()}`, // ID unique pour React
+                        userId: comment.nomUser, // Utilise nomUser comme userId temporaire
+                        userName: userData.userName,
+                        userAvatar: userData.userAvatar,
+                        helpful: 0 // Valeur par défaut pour le système de votes
+                    } as CommentWithUserData;
+                })
+            );
 
-  if (error) {
+            setCommentsWithUserData(commentsWithData);
+        } catch (error) {
+            console.error('Erreur chargement commentaires:', error);
+            setCommentsWithUserData([]);
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
+    // Charger les données du livre depuis Firebase
+    useEffect(() => {
+        const fetchBookData = async () => {
+            if (!id) {
+                setError('ID du livre manquant');
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Récupérer le livre depuis Firestore
+                const bookDoc = await getDoc(doc(db, 'BiblioBooks', id));
+
+                if (!bookDoc.exists()) {
+                    setError('Livre introuvable dans la base de données');
+                    setLoading(false);
+                    return;
+                }
+
+                const bookData = { id: bookDoc.id, ...bookDoc.data() } as BiblioBook;
+                setBook(bookData);
+
+                // Charger les commentaires avec les données utilisateur
+                if (bookData.commentaire && bookData.commentaire.length > 0) {
+                    await loadCommentsWithUserData(bookData.commentaire);
+                } else {
+                    console.log('📝 Aucun commentaire pour ce livre');
+                    setCommentsWithUserData([]);
+                }
+
+            } catch {
+                setError('Impossible de charger les détails du livre. Veuillez réessayer plus tard.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchBookData();
+    }, [id]);
+
+    // Gestion de la réservation
+    const handleReserve = async () => {
+        if (!isAuthenticated) {
+            navigate('/auth');
+            return;
+        }
+
+        if (!book || book.exemplaire <= 0) {
+            return;
+        }
+
+        setIsReserving(true);
+
+        try {
+            // Mettre à jour le nombre d'exemplaires dans Firestore
+            const bookRef = doc(db, 'BiblioBook', book.id);
+            await updateDoc(bookRef, {
+                exemplaire: book.exemplaire - 1
+            });
+
+            // Mettre à jour l'état local
+            setBook(prev => prev ? {
+                ...prev,
+                exemplaire: prev.exemplaire - 1
+            } : null);
+
+            // TODO: Ajouter la réservation à l'utilisateur
+
+        } catch (error) {
+            console.error('❌ Erreur réservation:', error);
+            alert('Erreur lors de la réservation. Veuillez réessayer.');
+        } finally {
+            setIsReserving(false);
+        }
+    };
+
+    // Gestion des favoris
+    const handleToggleFavorite = async () => {
+        if (!isAuthenticated) {
+            navigate('/auth');
+            return;
+        }
+
+        try {
+            setIsFavorite(!isFavorite);
+
+            const message = isFavorite
+                ? 'Livre retiré des favoris'
+                : 'Livre ajouté aux favoris';
+            console.log(message);
+
+        } catch (error) {
+            console.error('❌ Erreur favoris:', error);
+        }
+    };
+
+    // Gestion des commentaires
+    const handleSubmitComment = async (commentData: { texte: string; note: number; nomUser: string }) => {
+        if (!isAuthenticated || !currentUser || !book) {
+            throw new Error('Non authentifié');
+        }
+
+        try {
+            const newComment: Comment = {
+                heure: Timestamp.now(),
+                nomUser: commentData.nomUser,
+                note: commentData.note,
+                texte: commentData.texte
+            };
+
+            // Ajouter le commentaire au livre dans Firestore
+            const bookRef = doc(db, 'BiblioBooks', book.id);
+            await updateDoc(bookRef, {
+                commentaire: arrayUnion(newComment)
+            });
+
+            // Mettre à jour l'état local du livre
+            setBook(prev => prev ? {
+                ...prev,
+                commentaire: [newComment, ...prev.commentaire]
+            } : null);
+
+            // Créer le commentaire avec données utilisateur pour l'affichage
+            const newCommentWithUserData: CommentWithUserData = {
+                ...newComment,
+                id: `comment_new_${Date.now()}`,
+                userId: currentUser.id || '',
+                userName: currentUser.name,
+                userAvatar: currentUser.profilePicture,
+                helpful: 0
+            };
+
+            // Mettre à jour l'état local des commentaires avec données utilisateur
+            setCommentsWithUserData(prev => [newCommentWithUserData, ...prev]);
+
+        } catch (error) {
+            console.error('❌ Erreur ajout commentaire:', error);
+            throw error;
+        }
+    };
+
+    // Gestion des votes "utile"
+    const handleHelpfulClick = async (commentId: string) => {
+        if (!isAuthenticated) {
+            navigate('/auth');
+            return;
+        }
+
+        try {
+            setCommentsWithUserData(prev =>
+                prev.map(comment =>
+                    comment.id === commentId
+                        ? { ...comment, helpful: (comment.helpful || 0) + 1 }
+                        : comment
+                )
+            );
+
+        } catch (error) {
+            console.error('❌ Erreur vote utile:', error);
+        }
+    };
+
+    const handleLoginRequired = () => {
+        navigate('/auth');
+    };
+
+    // États de chargement
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <LoadingSpinner
+                    size="xl"
+                    text="Chargement des détails du livre..."
+                    fullScreen
+                />
+            </div>
+        );
+    }
+
+    // Gestion des erreurs
+    if (error || !book) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div
+                        className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${primaryColor}15` }}
+                    >
+                        <svg
+                            className="w-8 h-8"
+                            style={{ color: primaryColor }}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-4" style={{ color: secondaryColor }}>
+                        Livre introuvable
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                        {error || 'Le livre que vous recherchez n\'existe pas ou a été supprimé.'}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="flex-1 px-6 py-3 cursor-pointer rounded-lg font-medium text-white transition-colors"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            Réessayer
+                        </button>
+                        <button
+                            onClick={() => navigate('/books')}
+                            className="flex-1 px-6 py-3 cursor-pointer rounded-lg font-medium border-2 transition-colors"
+                            style={{
+                                borderColor: primaryColor,
+                                color: primaryColor
+                            }}
+                        >
+                            Retour au catalogue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="bg-red-50 p-6 rounded-lg text-center">
-          <h2 className="text-xl font-bold text-red-700 mb-2">Erreur</h2>
-          <p className="text-red-600">{error}</p>
-          <button 
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-            onClick={() => window.location.reload()}
-          >
-            Réessayer
-          </button>
+        <div className="min-h-screen bg-gray-50">
+            {/* Navigation breadcrumb */}
+            <div className="bg-white border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <nav className="flex items-center space-x-2 text-sm">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="text-gray-500 cursor-pointer hover:text-gray-700 transition-colors"
+                        >
+                            Accueil
+                        </button>
+                        <span className="text-gray-400">/</span>
+                        <button
+                            onClick={() => navigate('/books')}
+                            className="text-gray-500 cursor-pointer hover:text-gray-700 transition-colors"
+                        >
+                            Catalogue
+                        </button>
+                        <span className="text-gray-400">/</span>
+                        <span style={{ color: primaryColor }} className="font-medium">
+                            {book.name}
+                        </span>
+                    </nav>
+                </div>
+            </div>
+
+            {/* Contenu principal */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="space-y-8">
+                    {/* En-tête du livre */}
+                    <BookHeader
+                        book={book}
+                        onReserve={handleReserve}
+                        onToggleFavorite={handleToggleFavorite}
+                        onOpenCommentModal={() => setIsCommentModalOpen(true)}
+                        isFavorite={isFavorite}
+                        isAuthenticated={isAuthenticated}
+                        isReserving={isReserving}
+                        commentsWithUserData={commentsWithUserData}
+                    />
+
+                    {/* Description du livre */}
+                    <BookDescription book={book} />
+
+                    {/* Section des commentaires */}
+                    <div className="relative">
+                        {loadingComments && (
+                            <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-2xl">
+                                <LoadingSpinner size="md" text="Chargement des commentaires..." />
+                            </div>
+                        )}
+
+                        <CommentsSection
+                            comments={commentsWithUserData}
+                            onOpenCommentModal={() => setIsCommentModalOpen(true)}
+                            onHelpfulClick={handleHelpfulClick}
+                            isAuthenticated={isAuthenticated}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Modal de commentaire */}
+            <CommentModal
+                isOpen={isCommentModalOpen}
+                onClose={() => setIsCommentModalOpen(false)}
+                onSubmit={handleSubmitComment}
+                bookTitle={book.name}
+                isAuthenticated={isAuthenticated}
+                onLoginRequired={handleLoginRequired}
+                currentUserName={currentUser?.name || ''}
+            />
+
+            {/* Bouton flottant de retour */}
+            <button
+                onClick={() => navigate('/books')}
+                className="fixed bottom-6 left-6 w-14 h-14 rounded-full shadow-xl text-white flex items-center justify-center transition-all duration-200 hover:shadow-2xl hover:scale-110 z-50"
+                style={{ backgroundColor: secondaryColor }}
+                title="Retour au catalogue"
+            >
+                <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
         </div>
-      </div>
     );
-  }
-
-  if (!book) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-700 mb-2">Livre non trouvé</h2>
-          <p className="text-gray-600">Le livre que vous recherchez n'existe pas ou a été supprimé.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-white">
-      <BookDetailsHeader book={book} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <BookDetailsTabs book={book} />
-      </div>
-    </div>
-  );
 };
 
 export default BookDetailsPage;

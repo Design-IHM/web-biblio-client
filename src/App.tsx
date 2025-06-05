@@ -9,9 +9,9 @@ import ProfilePage from './pages/dashboard/Profile';
 import ReservationsPage from './pages/dashboard/ReservationsPage';
 import StatisticsPage from './pages/dashboard/StatisticsPage';
 import CartPage from './pages/dashboard/CartPage';
-import CataloguePage from './pages/CataloguePage';
 import BookDetailsPage from './pages/BookDetailsPage';
 import AuthPage from "./pages/AuthPage.tsx";
+import BooksPage from "./pages/BooksPage.tsx";
 
 const router = createBrowserRouter([
     {
@@ -29,11 +29,11 @@ const router = createBrowserRouter([
         element: <AuthPage />,
     },
     {
-        path: '/catalogue',
-        element: <CataloguePage />,
+        path: '/books',
+        element: <BooksPage />,
     },
     {
-        path: '/book/:id',
+        path: '/books/:id',
         element: <BookDetailsPage />,
     },
     {

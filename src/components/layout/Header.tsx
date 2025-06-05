@@ -149,14 +149,29 @@ const Header: React.FC = () => {
                     </NavLink>
 
                     <NavLink
-                        to="/catalogue"
+                        to="/Books"
                         className={({isActive}) => `
               relative transition-all duration-200 py-2 px-1 group
               ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
             `}
                         style={({isActive}) => isActive ? { color: primaryColor } : {}}
                     >
-                        Catalogue
+                        Books
+                        <span
+                            className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
+                            style={{ backgroundColor: primaryColor }}
+                        />
+                    </NavLink>
+
+                    <NavLink
+                        to="/Thesis"
+                        className={({isActive}) => `
+              relative transition-all duration-200 py-2 px-1 group
+              ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
+            `}
+                        style={({isActive}) => isActive ? { color: primaryColor } : {}}
+                    >
+                        Thesis
                         <span
                             className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
                             style={{ backgroundColor: primaryColor }}
