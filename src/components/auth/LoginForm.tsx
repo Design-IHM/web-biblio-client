@@ -98,8 +98,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             } else {
                 setErrors({ general: response.message || 'Erreur lors de la connexion' });
             }
-        } catch (error: unknown) {
-            console.error('Erreur connexion:', error);
+        } catch {
             setErrors({ general: 'Une erreur inattendue s\'est produite' });
         } finally {
             setLoading(false);

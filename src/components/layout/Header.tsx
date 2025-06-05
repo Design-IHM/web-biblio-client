@@ -156,7 +156,7 @@ const Header: React.FC = () => {
             `}
                         style={({isActive}) => isActive ? { color: primaryColor } : {}}
                     >
-                        Books
+                        Livres
                         <span
                             className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
                             style={{ backgroundColor: primaryColor }}
@@ -171,7 +171,7 @@ const Header: React.FC = () => {
             `}
                         style={({isActive}) => isActive ? { color: primaryColor } : {}}
                     >
-                        Thesis
+                        Memoires
                         <span
                             className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
                             style={{ backgroundColor: primaryColor }}
@@ -420,7 +420,7 @@ const Header: React.FC = () => {
                             </NavLink>
 
                             <NavLink
-                                to="/catalogue"
+                                to="/books"
                                 className={({isActive}) =>
                                     `py-2 px-4 rounded-md transition-colors ${isActive
                                         ? 'font-medium'
@@ -432,7 +432,39 @@ const Header: React.FC = () => {
                                 } : {}}
                                 onClick={() => setIsMenuOpen(false)}
                             >
-                                Catalogue
+                                Livres
+                            </NavLink>
+
+                            <NavLink
+                                to="/Thesis"
+                                className={({isActive}) =>
+                                    `py-2 px-4 rounded-md transition-colors ${isActive
+                                        ? 'font-medium'
+                                        : 'hover:bg-gray-100'}`
+                                }
+                                style={({isActive}) => isActive ? {
+                                    backgroundColor: `${primaryColor}15`,
+                                    color: primaryColor
+                                } : {}}
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                Memoire
+                            </NavLink>
+
+                            <NavLink
+                                to="/help"
+                                className={({isActive}) =>
+                                    `py-2 px-4 rounded-md transition-colors ${isActive
+                                        ? 'font-medium'
+                                        : 'hover:bg-gray-100'}`
+                                }
+                                style={({isActive}) => isActive ? {
+                                    backgroundColor: `${primaryColor}15`,
+                                    color: primaryColor
+                                } : {}}
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                aide
                             </NavLink>
 
                             {currentUser ? (

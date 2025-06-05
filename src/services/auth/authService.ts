@@ -28,12 +28,6 @@ class AuthService {
      */
     async signUp(data: RegisterFormData): Promise<AuthResponse> {
         try {
-            console.log('🚀 Début inscription:', {
-                email: data.email,
-                statut: data.statut,
-                niveau: data.niveau,
-                departement: data.departement
-            });
 
             // Récupérer la configuration pour MaximumSimultaneousLoans
             const orgSettings = await configService.getOrgSettings();
@@ -48,7 +42,6 @@ class AuthService {
             );
 
             const firebaseUser = userCredential.user;
-            console.log('✅ Utilisateur Firebase créé:', firebaseUser.uid);
 
             // Upload de l'image de profil si fournie (via Cloudinary)
             let profilePictureUrl = '';
@@ -84,12 +77,6 @@ class AuthService {
             // CORRECTION: S'assurer que niveau et departement ne sont jamais undefined
             const niveau = data.statut === 'etudiant' ? (data.niveau || '') : '';
             const departement = data.statut === 'etudiant' ? (data.departement || '') : '';
-
-            console.log('🎓 Données académiques:', {
-                statut: data.statut,
-                niveau,
-                departement
-            });
 
             // Créer le document utilisateur dans Firestore
             const biblioUser: BiblioUser = {
@@ -135,11 +122,9 @@ class AuthService {
                 displayName: data.name,
                 photoURL: profilePictureUrl
             });
-            console.log('✅ Profil Firebase Auth mis à jour');
 
             // Envoyer l'email de vérification
             await firebaseSendEmailVerification(firebaseUser);
-            console.log('✅ Email de vérification envoyé');
 
             return {
                 success: true,
@@ -168,7 +153,6 @@ class AuthService {
      */
     async signIn(data: LoginFormData): Promise<AuthResponse> {
         try {
-            console.log('🔐 Tentative de connexion:', data.email);
 
             const userCredential = await signInWithEmailAndPassword(
                 auth,
@@ -177,7 +161,6 @@ class AuthService {
             );
 
             const firebaseUser = userCredential.user;
-            console.log('✅ Utilisateur Firebase connecté:', firebaseUser.uid);
 
             // Récupérer les données utilisateur depuis Firestore
             const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
@@ -207,7 +190,6 @@ class AuthService {
             };
 
         } catch (error: unknown) {
-            console.error('❌ Erreur connexion:', error);
             return {
                 success: false,
                 message: this.getErrorMessage(error as string)
@@ -221,7 +203,6 @@ class AuthService {
     async signOut(): Promise<void> {
         try {
             await firebaseSignOut(auth);
-            console.log('✅ Déconnexion réussie');
         } catch (error) {
             console.error('❌ Erreur déconnexion:', error);
             throw error;
@@ -239,7 +220,6 @@ class AuthService {
             }
 
             await firebaseSendEmailVerification(user);
-            console.log('✅ Email de vérification envoyé');
         } catch (error) {
             console.error('❌ Erreur envoi email:', error);
             throw error;
@@ -252,7 +232,6 @@ class AuthService {
     async resetPassword(email: string): Promise<void> {
         try {
             await sendPasswordResetEmail(auth, email);
-            console.log('✅ Email de réinitialisation envoyé');
         } catch (error) {
             console.error('❌ Erreur reset password:', error);
             throw error;

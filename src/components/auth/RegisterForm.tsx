@@ -188,8 +188,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
             } else {
                 setErrors({ general: response.message || 'Erreur lors de l\'inscription' });
             }
-        } catch (error: unknown) {
-            console.error('Erreur inscription:', error);
+        } catch {
             setErrors({ general: 'Une erreur inattendue s\'est produite' });
         } finally {
             setLoading(false);

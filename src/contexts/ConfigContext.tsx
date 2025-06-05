@@ -25,7 +25,6 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
 
     const fetchSettings = async () => {
         try {
-            console.log('🚀 ConfigProvider: Starting to fetch settings...');
             setIsLoading(true);
             setError(null);
 
@@ -40,20 +39,16 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
                 configService.getAppSettings()
             ]);
 
-            console.log('📊 ConfigProvider: Settings fetched:', { orgData, appData });
-
             setOrgSettings(orgData);
             setAppSettings(appData);
 
             // Vérifier si les données viennent vraiment de Firebase
             if (orgData.Name === 'BiblioENSPY' && !orgData.Logo) {
-                console.warn('⚠️ Using default settings - check Firebase data');
                 setError('Utilisation des paramètres par défaut. Vérifiez votre base de données Firebase.');
             }
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-            console.error('❌ ConfigProvider: Error fetching settings:', err);
             setError(`Erreur de configuration: ${errorMessage}`);
 
             // Charger les paramètres par défaut en cas d'erreur
@@ -77,24 +72,16 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     };
 
     const refetch = async () => {
-        console.log('🔄 ConfigProvider: Manual refetch requested');
         configService.invalidateCache();
         await fetchSettings();
     };
 
     useEffect(() => {
-        console.log('🏗️ ConfigProvider: Initializing...');
         fetchSettings();
     }, []);
 
     // Debug: Log des changements d'état
     useEffect(() => {
-        console.log('📊 ConfigProvider State Update:', {
-            orgSettings: orgSettings?.Name,
-            appSettings: appSettings?.AppVersion,
-            isLoading,
-            error
-        });
     }, [orgSettings, appSettings, isLoading, error]);
 
     return (

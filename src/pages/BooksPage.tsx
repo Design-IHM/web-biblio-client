@@ -91,11 +91,12 @@ const BooksPage: React.FC = () => {
             <Header />
 
             {/* En-tête avec hero section */}
-            <div className="bg-white border-b border-gray-200 shadow-sm">
+            <div className="border bg-[#1b263b] border-gray-200 shadow-sm"
+            >
                 <div className="container mx-auto px-4 py-12">
                     {/* Titre principal */}
                     <div className="text-center mb-8">
-                        <div className="flex justify-center mb-4">
+                        <div className="flex justify-center mb-4 mt-12">
                             <div
                                 className="w-16 h-1 rounded-full"
                                 style={{
@@ -105,11 +106,11 @@ const BooksPage: React.FC = () => {
                         </div>
                         <h1
                             className="text-4xl md:text-5xl font-bold mb-4"
-                            style={{ color: secondaryColor }}
+                            style={{ color: primaryColor }}
                         >
-                            Catalogue {organizationName}
+                            Livres {organizationName}
                         </h1>
-                        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                        <p className="text-lg text-white max-w-3xl mx-auto leading-relaxed">
                             Explorez notre collection complète de livres, mémoires et ressources académiques.
                             Recherchez, filtrez et découvrez les ouvrages qui enrichiront vos connaissances.
                         </p>

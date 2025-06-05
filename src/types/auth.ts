@@ -27,9 +27,9 @@ export interface BiblioUser {
     createdAt: Timestamp;
     lastLoginAt: Timestamp;
     level: UserLevel;
-    tabEtat1: string[];
-    tabEtat2: string[];
-    tabEtat3: string[];
+    tabEtat1?: string[];
+    tabEtat2?: string[];
+    tabEtat3?: string[];
     tabEtat4?: string[];
     tabEtat5?: string[];
     etat1: EtatValue;
