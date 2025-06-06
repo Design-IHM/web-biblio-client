@@ -74,7 +74,7 @@ const UniversityHero = () => {
     }, []);
 
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
-    const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
+    const secondaryColor = '#1b263b';
     const organizationName = orgSettings?.Name || 'BiblioENSPY';
 
     return (

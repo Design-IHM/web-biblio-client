@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../configs/firebase';
-import { useConfig } from '../../contexts/ConfigContext';
+import { db } from '../../configs/firebase.ts';
+import { useConfig } from '../../contexts/ConfigContext.tsx';
 import { Filter, ChevronDown, X, Check, Image as ImageIcon } from 'lucide-react';
 
 interface Department {

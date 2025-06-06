@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useConfig } from '../../contexts/ConfigContext';
-import { CommentWithUserData } from './BookCard';
+import { useConfig } from '../../contexts/ConfigContext.tsx';
+import { CommentWithUserData } from '../books/BookCard.tsx';
 import { Timestamp } from 'firebase/firestore';
 import {
     MessageSquare,
@@ -124,15 +124,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                         </p>
                     </div>
                 </div>
-
-                <button
-                    onClick={onOpenCommentModal}
-                    className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200 hover:shadow-lg transform hover:scale-105"
-                    style={{ backgroundColor: primaryColor }}
-                >
-                    <MessageSquare className="w-5 h-5 mr-2 inline" />
-                    Écrire un avis
-                </button>
             </div>
 
             {/* Statistiques des évaluations */}

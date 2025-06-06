@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useConfig } from '../../contexts/ConfigContext';
+import { useConfig } from '../../contexts/ConfigContext.tsx';
 import { X, Star, Send, AlertCircle } from 'lucide-react';
 
 interface CommentModalProps {
@@ -117,7 +117,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                     <button
                         onClick={handleClose}
                         disabled={isSubmitting}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+                        className="p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50"
                     >
                         <X className="w-6 h-6 text-gray-500" />
                     </button>
@@ -269,7 +269,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                             type="button"
                             onClick={handleClose}
                             disabled={isSubmitting}
-                            className="sm:w-auto px-6 py-3 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            className="sm:w-auto px-6 py-3 cursor-pointer rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
                         >
                             Annuler
                         </button>
@@ -277,7 +277,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                         <button
                             type="submit"
                             disabled={!isAuthenticated || isSubmitting || !texte.trim() || texte.length < 10}
-                            className="flex-1 sm:flex-none px-8 py-3 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            className="flex-1 sm:flex-none cursor-pointer px-8 py-3 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             style={{
                                 backgroundColor: isAuthenticated && !isSubmitting && texte.trim().length >= 10
                                     ? primaryColor

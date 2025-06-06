@@ -6,24 +6,24 @@ import { BiblioUser } from '../types/auth';
 import { Timestamp, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '../configs/firebase';
 
-// Import des composants
-import BookHeader from '../components/books/BookHeader';
-import BookDescription from '../components/books/BookDescription';
+// Import des composants pour les mémoires
+import ThesisHeader from '../components/thesis/ThesisHeader';
+import ThesisDescription from '../components/thesis/ThesisDescription';
 import CommentsSection from '../components/common/CommentsSection.tsx';
 import CommentModal from '../components/common/CommentModal.tsx';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-// Import des interfaces depuis BookCard
-import { BiblioBook, Comment, CommentWithUserData } from '../components/books/BookCard';
+// Import des interfaces
+import { BiblioThesis, ThesisComment, ThesisCommentWithUserData } from '../types/thesis';
 
-const BookDetailsPage: React.FC = () => {
+const ThesisDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { orgSettings } = useConfig();
 
     // États principaux
-    const [book, setBook] = useState<BiblioBook | null>(null);
-    const [commentsWithUserData, setCommentsWithUserData] = useState<CommentWithUserData[]>([]);
+    const [thesis, setThesis] = useState<BiblioThesis | null>(null);
+    const [commentsWithUserData, setCommentsWithUserData] = useState<ThesisCommentWithUserData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUser, setCurrentUser] = useState<BiblioUser | null>(null);
@@ -31,7 +31,7 @@ const BookDetailsPage: React.FC = () => {
 
     // États pour les interactions
     const [isFavorite, setIsFavorite] = useState(false);
-    const [isReserving, setIsReserving] = useState(false);
+    const [isViewing, setIsViewing] = useState(false);
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [loadingComments, setLoadingComments] = useState(false);
 
@@ -58,12 +58,9 @@ const BookDetailsPage: React.FC = () => {
     // Fonction pour récupérer les données utilisateur d'un commentaire
     const getUserDataForComment = async (nomUser: string): Promise<{ userName: string; userAvatar?: string }> => {
         try {
-            // Si nomUser correspond à un nom d'utilisateur, essayez de récupérer l'avatar
-            // Ici vous pourriez faire une requête pour chercher l'utilisateur par nom
-            // Pour l'instant, on retourne juste le nomUser
             return {
                 userName: nomUser || 'Utilisateur anonyme',
-                userAvatar: undefined // Vous pouvez implémenter la logique pour récupérer l'avatar
+                userAvatar: undefined
             };
         } catch (error) {
             console.error('Erreur récupération données utilisateur:', error);
@@ -72,7 +69,7 @@ const BookDetailsPage: React.FC = () => {
     };
 
     // Charger les commentaires avec les données utilisateur
-    const loadCommentsWithUserData = async (comments: Comment[]) => {
+    const loadCommentsWithUserData = async (comments: ThesisComment[]) => {
         setLoadingComments(true);
 
         try {
@@ -81,12 +78,12 @@ const BookDetailsPage: React.FC = () => {
                     const userData = await getUserDataForComment(comment.nomUser);
                     return {
                         ...comment,
-                        id: `comment_${index}_${comment.heure.toMillis()}`, // ID unique pour React
-                        userId: comment.nomUser, // Utilise nomUser comme userId temporaire
+                        id: `comment_${index}_${comment.heure.toMillis()}`,
+                        userId: comment.nomUser,
                         userName: userData.userName,
                         userAvatar: userData.userAvatar,
-                        helpful: 0 // Valeur par défaut pour le système de votes
-                    } as CommentWithUserData;
+                        helpful: 0
+                    } as ThesisCommentWithUserData;
                 })
             );
 
@@ -99,11 +96,11 @@ const BookDetailsPage: React.FC = () => {
         }
     };
 
-    // Charger les données du livre depuis Firebase
+    // Charger les données du mémoire depuis Firebase
     useEffect(() => {
-        const fetchBookData = async () => {
+        const fetchThesisData = async () => {
             if (!id) {
-                setError('ID du livre manquant');
+                setError('ID du mémoire manquant');
                 setLoading(false);
                 return;
             }
@@ -112,69 +109,64 @@ const BookDetailsPage: React.FC = () => {
                 setLoading(true);
                 setError(null);
 
-                // Récupérer le livre depuis Firestore
-                const bookDoc = await getDoc(doc(db, 'BiblioBooks', id));
+                // Récupérer le mémoire depuis Firestore
+                const thesisDoc = await getDoc(doc(db, 'BiblioThesis', id));
 
-                if (!bookDoc.exists()) {
-                    setError('Livre introuvable dans la base de données');
+                if (!thesisDoc.exists()) {
+                    setError('Mémoire introuvable dans la base de données');
                     setLoading(false);
                     return;
                 }
 
-                const bookData = { id: bookDoc.id, ...bookDoc.data() } as BiblioBook;
-                setBook(bookData);
+                const thesisData = { id: thesisDoc.id, ...thesisDoc.data() } as BiblioThesis;
+                setThesis(thesisData);
 
                 // Charger les commentaires avec les données utilisateur
-                if (bookData.commentaire && bookData.commentaire.length > 0) {
-                    await loadCommentsWithUserData(bookData.commentaire);
+                if (thesisData.commentaire && thesisData.commentaire.length > 0) {
+                    await loadCommentsWithUserData(thesisData.commentaire);
                 } else {
-                    console.log('📝 Aucun commentaire pour ce livre');
+                    console.log('📝 Aucun commentaire pour ce mémoire');
                     setCommentsWithUserData([]);
                 }
 
-            } catch {
-                setError('Impossible de charger les détails du livre. Veuillez réessayer plus tard.');
+            } catch (error) {
+                console.error('❌ Erreur chargement mémoire:', error);
+                setError('Impossible de charger les détails du mémoire. Veuillez réessayer plus tard.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchBookData();
+        fetchThesisData();
     }, [id]);
 
-    // Gestion de la réservation
-    const handleReserve = async () => {
+    // Gestion de la consultation
+    const handleView = async () => {
         if (!isAuthenticated) {
             navigate('/auth');
             return;
         }
 
-        if (!book || book.exemplaire <= 0) {
+        if (!thesis) {
             return;
         }
 
-        setIsReserving(true);
+        setIsViewing(true);
 
         try {
-            // Mettre à jour le nombre d'exemplaires dans Firestore
-            const bookRef = doc(db, 'BiblioBook', book.id);
-            await updateDoc(bookRef, {
-                exemplaire: book.exemplaire - 1
-            });
+            // TODO: Implémenter la logique de consultation
+            console.log('📖 Consultation du mémoire:', thesis.id);
 
-            // Mettre à jour l'état local
-            setBook(prev => prev ? {
-                ...prev,
-                exemplaire: prev.exemplaire - 1
-            } : null);
+            // Simuler un délai
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // TODO: Ajouter la réservation à l'utilisateur
+            console.log('✅ Mémoire consulté avec succès');
 
         } catch (error) {
-            console.error('❌ Erreur réservation:', error);
-            alert('Erreur lors de la réservation. Veuillez réessayer.');
+            console.error('❌ Erreur consultation:', error);
+            alert('Erreur lors de la consultation. Veuillez réessayer.');
         } finally {
-            setIsReserving(false);
+            setIsViewing(false);
         }
     };
 
@@ -189,8 +181,8 @@ const BookDetailsPage: React.FC = () => {
             setIsFavorite(!isFavorite);
 
             const message = isFavorite
-                ? 'Livre retiré des favoris'
-                : 'Livre ajouté aux favoris';
+                ? 'Mémoire retiré des favoris'
+                : 'Mémoire ajouté aux favoris';
             console.log(message);
 
         } catch (error) {
@@ -200,32 +192,32 @@ const BookDetailsPage: React.FC = () => {
 
     // Gestion des commentaires
     const handleSubmitComment = async (commentData: { texte: string; note: number; nomUser: string }) => {
-        if (!isAuthenticated || !currentUser || !book) {
+        if (!isAuthenticated || !currentUser || !thesis) {
             throw new Error('Non authentifié');
         }
 
         try {
-            const newComment: Comment = {
+            const newComment: ThesisComment = {
                 heure: Timestamp.now(),
                 nomUser: commentData.nomUser,
                 note: commentData.note,
                 texte: commentData.texte
             };
 
-            // Ajouter le commentaire au livre dans Firestore
-            const bookRef = doc(db, 'BiblioBooks', book.id);
-            await updateDoc(bookRef, {
+            // Ajouter le commentaire au mémoire dans Firestore
+            const thesisRef = doc(db, 'BiblioThesis', thesis.id);
+            await updateDoc(thesisRef, {
                 commentaire: arrayUnion(newComment)
             });
 
-            // Mettre à jour l'état local du livre
-            setBook(prev => prev ? {
+            // Mettre à jour l'état local du mémoire
+            setThesis(prev => prev ? {
                 ...prev,
                 commentaire: [newComment, ...prev.commentaire]
             } : null);
 
             // Créer le commentaire avec données utilisateur pour l'affichage
-            const newCommentWithUserData: CommentWithUserData = {
+            const newCommentWithUserData: ThesisCommentWithUserData = {
                 ...newComment,
                 id: `comment_new_${Date.now()}`,
                 userId: currentUser.id || '',
@@ -274,7 +266,7 @@ const BookDetailsPage: React.FC = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner
                     size="xl"
-                    text="Chargement des détails du livre..."
+                    text="Chargement des détails du mémoire..."
                     fullScreen
                 />
             </div>
@@ -282,7 +274,7 @@ const BookDetailsPage: React.FC = () => {
     }
 
     // Gestion des erreurs
-    if (error || !book) {
+    if (error || !thesis) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
@@ -301,10 +293,10 @@ const BookDetailsPage: React.FC = () => {
                         </svg>
                     </div>
                     <h2 className="text-2xl font-bold mb-4" style={{ color: secondaryColor }}>
-                        Livre introuvable
+                        Mémoire introuvable
                     </h2>
                     <p className="text-gray-600 mb-6">
-                        {error || 'Le livre que vous recherchez n\'existe pas ou a été supprimé.'}
+                        {error || 'Le mémoire que vous recherchez n\'existe pas ou a été supprimé.'}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
@@ -315,14 +307,14 @@ const BookDetailsPage: React.FC = () => {
                             Réessayer
                         </button>
                         <button
-                            onClick={() => navigate('/books')}
+                            onClick={() => navigate('/thesis')}
                             className="flex-1 px-6 py-3 cursor-pointer rounded-lg font-medium border-2 transition-colors"
                             style={{
                                 borderColor: primaryColor,
                                 color: primaryColor
                             }}
                         >
-                            Retour au catalogue
+                            Retour aux mémoires
                         </button>
                     </div>
                 </div>
@@ -344,14 +336,14 @@ const BookDetailsPage: React.FC = () => {
                         </button>
                         <span className="text-gray-400">/</span>
                         <button
-                            onClick={() => navigate('/books')}
+                            onClick={() => navigate('/thesis')}
                             className="text-gray-500 cursor-pointer hover:text-gray-700 transition-colors"
                         >
-                            Catalogue
+                            Mémoires
                         </button>
                         <span className="text-gray-400">/</span>
                         <span style={{ color: primaryColor }} className="font-medium">
-                            {book.name}
+                            {thesis.theme || thesis.name}
                         </span>
                     </nav>
                 </div>
@@ -360,20 +352,20 @@ const BookDetailsPage: React.FC = () => {
             {/* Contenu principal */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="space-y-8">
-                    {/* En-tête du livre */}
-                    <BookHeader
-                        book={book}
-                        onReserve={handleReserve}
+                    {/* En-tête du mémoire */}
+                    <ThesisHeader
+                        thesis={thesis}
+                        onView={handleView}
                         onToggleFavorite={handleToggleFavorite}
                         onOpenCommentModal={() => setIsCommentModalOpen(true)}
                         isFavorite={isFavorite}
                         isAuthenticated={isAuthenticated}
-                        isReserving={isReserving}
+                        isViewing={isViewing}
                         commentsWithUserData={commentsWithUserData}
                     />
 
-                    {/* Description du livre */}
-                    <BookDescription book={book} />
+                    {/* Description du mémoire */}
+                    <ThesisDescription thesis={thesis} />
 
                     {/* Section des commentaires */}
                     <div className="relative">
@@ -398,7 +390,7 @@ const BookDetailsPage: React.FC = () => {
                 isOpen={isCommentModalOpen}
                 onClose={() => setIsCommentModalOpen(false)}
                 onSubmit={handleSubmitComment}
-                bookTitle={book.name}
+                bookTitle={thesis.theme || `Mémoire de ${thesis.name}`}
                 isAuthenticated={isAuthenticated}
                 onLoginRequired={handleLoginRequired}
                 currentUserName={currentUser?.name || ''}
@@ -406,10 +398,10 @@ const BookDetailsPage: React.FC = () => {
 
             {/* Bouton flottant de retour */}
             <button
-                onClick={() => navigate('/books')}
-                className="fixed bottom-6 left-6 w-14 h-14 rounded-full shadow-xl text-white flex items-center justify-center transition-all duration-200 hover:shadow-2xl hover:scale-110 z-50"
+                onClick={() => navigate('/thesis')}
+                className="fixed bottom-6 left-6 w-14 cursor-pointer h-14 rounded-full shadow-xl text-white flex items-center justify-center transition-all duration-200 hover:shadow-2xl hover:scale-110 z-50"
                 style={{ backgroundColor: secondaryColor }}
-                title="Retour au catalogue"
+                title="Retour aux mémoires"
             >
                 <svg
                     className="w-6 h-6"
@@ -424,4 +416,4 @@ const BookDetailsPage: React.FC = () => {
     );
 };
 
-export default BookDetailsPage;
+export default ThesisDetailsPage;

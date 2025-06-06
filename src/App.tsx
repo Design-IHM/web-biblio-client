@@ -12,6 +12,8 @@ import CartPage from './pages/dashboard/CartPage';
 import BookDetailsPage from './pages/BookDetailsPage';
 import AuthPage from "./pages/AuthPage.tsx";
 import BooksPage from "./pages/BooksPage.tsx";
+import ThesisPage from "./pages/ThesisPage.tsx";
+import ThesisDetailsPage from "./pages/ThesisDetailsPage.tsx";
 
 const router = createBrowserRouter([
     {
@@ -35,6 +37,14 @@ const router = createBrowserRouter([
     {
         path: '/books/:id',
         element: <BookDetailsPage />,
+    },
+    {
+        path: '/thesis',
+        element: <ThesisPage />,
+    },
+    {
+        path: '/thesis/:id',
+        element: <ThesisDetailsPage />,
     },
     {
         path: '/dashboard',
