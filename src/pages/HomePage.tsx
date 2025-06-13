@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import Hero from '../components/Hero';
 import Annonces from '../components/Annonces';
@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 // Définition des couleurs
 const colors = {
   primary: '#ff8c00',
-  secondary: '#1b263b', 
+  secondary: '#1b263b',
   light: '#ffffff',
   gray: '#f3f4f6',
   darkGray: '#4b5563',
@@ -25,9 +25,9 @@ const fadeInUp = {
 
 const staggerChildren = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { 
+    transition: {
       staggerChildren: 0.2,
       delayChildren: 0.3,
     }
@@ -56,11 +56,11 @@ const StarRating = ({ rating = 5 }) => {
   return (
     <div className="flex">
       {[...Array(5)].map((_, i) => (
-        <svg 
+        <svg
           key={i}
           className={`h-5 w-5 ${i < rating ? 'text-primary' : 'text-gray-300'}`}
-          xmlns="http://www.w3.org/2000/svg" 
-          viewBox="0 0 20 20" 
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
           fill="currentColor"
         >
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -74,7 +74,7 @@ const StarRating = ({ rating = 5 }) => {
 const StatItem = ({ number, text, delay }) => {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
-  
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -93,22 +93,22 @@ const StatItem = ({ number, text, delay }) => {
               setCount(current);
             }
           }, 16);
-          
+
           observer.disconnect();
         }
       },
       { threshold: 0.5 }
     );
-    
+
     if (ref.current) {
       observer.observe(ref.current);
     }
-    
+
     return () => observer.disconnect();
   }, [number]);
-  
+
   return (
-    <motion.div 
+    <motion.div
       ref={ref}
       className="relative p-8 bg-white rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl"
       initial={{ opacity: 0, y: 30 }}
@@ -127,7 +127,7 @@ const StatItem = ({ number, text, delay }) => {
 // Composant Témoignage
 const TestimonialCard = ({ name, role, text, image, delay }) => {
   return (
-    <motion.div 
+    <motion.div
       className="flex-shrink-0 w-full md:w-80 lg:w-96 bg-white p-6 rounded-xl shadow-md transform transition-all duration-300 hover:shadow-xl border-t-4 border-primary"
       initial={{ opacity: 0, x: 30 }}
       animate={{ opacity: 1, x: 0 }}
@@ -145,21 +145,21 @@ const TestimonialCard = ({ name, role, text, image, delay }) => {
           <p className="text-sm text-gray-500">{role}</p>
         </div>
       </div>
-      
+
       <div className="relative">
-        <svg className="absolute top-0 left-0 w-8 h-8 text-primary opacity-10 transform -translate-x-4 -translate-y-4" 
+        <svg className="absolute top-0 left-0 w-8 h-8 text-primary opacity-10 transform -translate-x-4 -translate-y-4"
           fill="currentColor" viewBox="0 0 32 32">
           <path d="M10 8v8H6v-4c0-2.2 1.8-4 4-4zm12 0v8h-4v-4c0-2.2 1.8-4 4-4z" />
         </svg>
         <p className="text-gray-600 italic leading-relaxed">
           {text}
         </p>
-        <svg className="absolute bottom-0 right-0 w-8 h-8 text-primary opacity-10 transform translate-x-2 translate-y-2" 
+        <svg className="absolute bottom-0 right-0 w-8 h-8 text-primary opacity-10 transform translate-x-2 translate-y-2"
           fill="currentColor" viewBox="0 0 32 32">
           <path d="M22 24v-8h4v4c0 2.2-1.8 4-4 4zm-12 0v-8h4v4c0 2.2-1.8 4-4 4z" />
         </svg>
       </div>
-      
+
       <div className="mt-6">
         <StarRating rating={5} />
       </div>
@@ -196,15 +196,15 @@ const TestimonialsSection = ({ testimonials }) => {
   return (
     <section className="py-20 bg-gray relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full bg-pattern opacity-5"></div>
-      
+
       <div className="container mx-auto px-4">
-        <motion.div 
+        <motion.div
           className="text-center mb-12"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeInUp}
-        > 
+        >
            <div className="flex justify-center mb-4">
             <div className="w-16 h-1 rounded-full bg-gradient-to-r from-orange-500 to-blue-800"></div>
           </div>
@@ -217,7 +217,7 @@ const TestimonialsSection = ({ testimonials }) => {
             Découvrez les expériences partagées par notre communauté de lecteurs et d'apprenants passionnés.
           </p>
         </motion.div>
-        
+
         <div className="relative">
           <div className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10">
             <button className="p-2 rounded-full bg-white shadow-lg text-secondary hover:text-primary transition-colors">
@@ -226,8 +226,8 @@ const TestimonialsSection = ({ testimonials }) => {
               </svg>
             </button>
           </div>
-          
-          <div 
+
+          <div
             ref={scrollRef}
             className="flex space-x-6 overflow-x-auto py-6 px-4 scrollbar-hide"
             style={{ scrollBehavior: 'smooth', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
@@ -236,38 +236,38 @@ const TestimonialsSection = ({ testimonials }) => {
             onMouseUp={stopDragging}
             onMouseMove={move}
           >
-            <TestimonialCard 
+            <TestimonialCard
               name="Estelle Ndongo"
               role="Membre depuis 3 ans"
               text="J'adore le nouveau système en ligne qui me permet de réserver des livres à l'avance. Le personnel est toujours accueillant et prêt à aider."
               delay={0.1}
             />
-            <TestimonialCard 
+            <TestimonialCard
               name="BornBeforeDesign"
               role="Étudiant"
               text="Les espaces de travail sont parfaits pour mes révisions. L'accès aux ressources numériques a considérablement facilité mes recherches universitaires."
               delay={0.2}
             />
-            <TestimonialCard 
+            <TestimonialCard
               name="Bryan Kouassi"
               role="Parent"
               text="Les ateliers de lecture pour enfants sont fantastiques ! Mes enfants adorent y participer et ont développé un véritable amour pour la lecture."
               delay={0.3}
             />
-            <TestimonialCard 
+            <TestimonialCard
               name="Audrey Mbeuyo"
               role="Retraité"
               text="La bibliothèque est devenue mon lieu favori. Je participe régulièrement aux clubs de lecture et j'ai rencontré des personnes partageant les mêmes centres d'intérêt."
               delay={0.4}
             />
-            <TestimonialCard 
+            <TestimonialCard
               name="Nina Ntye"
               role="Professeur"
               text="Les ressources pédagogiques disponibles sont exceptionnelles. J'organise souvent des sorties avec mes élèves et ils adorent l'atmosphère."
               delay={0.5}
             />
           </div>
-          
+
           <div className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10">
             <button className="p-2 rounded-full bg-white shadow-lg text-secondary hover:text-primary transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -276,7 +276,7 @@ const TestimonialsSection = ({ testimonials }) => {
             </button>
           </div>
         </div>
-        
+
         <div className="mt-8 flex justify-center space-x-2">
           <span className="w-3 h-3 rounded-full bg-primary"></span>
           <span className="w-3 h-3 rounded-full bg-gray-300"></span>
@@ -291,16 +291,16 @@ const TestimonialsSection = ({ testimonials }) => {
 const CallToActionSection = () => {
   return (
     <section className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 z-0" style={{ 
-        background: `linear-gradient(120deg, ${colors.secondary} 0%, ${colors.primary} 100%)` 
+      <div className="absolute inset-0 z-0" style={{
+        background: `linear-gradient(120deg, ${colors.secondary} 0%, ${colors.primary} 100%)`
       }}></div>
-      
+
       {/* Forme décorative */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full transform translate-x-1/3 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white opacity-10 rounded-full transform -translate-x-1/3 translate-y-1/2"></div>
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        <motion.div 
+        <motion.div
           className="max-w-3xl mx-auto text-center"
           initial="hidden"
           whileInView="visible"
@@ -309,13 +309,13 @@ const CallToActionSection = () => {
         >
           <h2 className="text-4xl font-bold mb-6 text-white">Rejoignez notre communauté</h2>
           <p className="text-xl text-white/90 mb-10 leading-relaxed">
-            Créez un compte aujourd'hui et profitez de tous nos services pour explorer, 
+            Créez un compte aujourd'hui et profitez de tous nos services pour explorer,
             emprunter et découvrir notre vaste collection.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-6">
-            <motion.a 
-              href="/inscription" 
+            <motion.a
+              href="/inscription"
               className="bg-white text-secondary hover:bg-gray-100 py-4 px-8 rounded-xl font-medium transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -325,9 +325,9 @@ const CallToActionSection = () => {
               </svg>
               S'inscrire
             </motion.a>
-            
-            <motion.a 
-              href="/catalogue" 
+
+            <motion.a
+              href="/catalogue"
               className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-secondary py-4 px-8 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -338,7 +338,7 @@ const CallToActionSection = () => {
               Explorer le catalogue
             </motion.a>
           </div>
-          
+
           <div className="mt-12 pt-12 border-t border-white/20">
             <p className="text-white/80 text-sm mb-4">Rejoignez les milliers de membres qui nous font confiance</p>
             <div className="flex justify-center space-x-8">
@@ -364,9 +364,9 @@ const StatisticsSection = () => {
   return (
     <section className="py-20 bg-white relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-5 z-0"></div>
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        <motion.div 
+        <motion.div
           className="text-center mb-16"
           initial="hidden"
           whileInView="visible"
@@ -382,19 +382,19 @@ const StatisticsSection = () => {
           <h2 className="text-4xl font-bold mb-4 text-secondary">Une bibliothèque en constante évolution</h2>
           <div className="w-24 h-1 mx-auto bg-primary rounded-full mb-6"></div>
           <p className="max-w-2xl mx-auto text-gray-600">
-            Découvrez l'étendue de notre bibliothèque à travers quelques chiffres qui témoignent 
+            Découvrez l'étendue de notre bibliothèque à travers quelques chiffres qui témoignent
             de notre engagement envers la culture et le savoir.
           </p>
         </motion.div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <StatItem number="25000" text="Livres disponibles" delay={0.1} />
           <StatItem number="5000" text="Membres actifs" delay={0.2} />
           <StatItem number="300" text="Événements par an" delay={0.3} />
           <StatItem number="15" text="Années d'expérience" delay={0.4} />
         </div>
-        
-        <motion.div 
+
+        <motion.div
           className="mt-16 bg-gradient-to-r from-secondary/5 to-primary/5 p-8 rounded-2xl"
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -406,8 +406,8 @@ const StatisticsSection = () => {
               <h3 className="text-2xl font-bold text-secondary mb-2">Vous voulez en savoir plus?</h3>
               <p className="text-gray-600">Découvrez notre catalogue complet et toutes nos activités</p>
             </div>
-            <motion.a 
-              href="/services" 
+            <motion.a
+              href="/services"
               className="bg-gradient-to-r from-secondary to-primary text-grey py-3 px-8 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -456,26 +456,26 @@ const HomePage = () => {
     <>
 
     <div className="flex flex-col min-h-screen">
-      
+
       <main className="flex-grow">
         {/* Hero Section */}
         <Hero />
-        
+
         {/* Announcements Carousel */}
         <Annonces annonces={annoncesData} />
-        
+
         {/* Services Section */}
         <Services />
-        
+
         {/* Partners Section */}
         <Partenaires />
         <CallToActionSection />
         <StatisticsSection />
         <TestimonialsSection testimonials={testimonials} />
-       
-          
+
+
       </main>
-      
+
     </div>
     <style jsx global>{`
         @keyframes float {
@@ -483,15 +483,15 @@ const HomePage = () => {
           50% { transform: translateY(-10px); }
           100% { transform: translateY(0px); }
         }
-        
+
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        
+
         .bg-pattern {
           background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
-        
+
         .bg-grid-pattern {
           background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/svg%3E");
         }

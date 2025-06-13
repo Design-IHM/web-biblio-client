@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { ConfigProvider } from './contexts/ConfigContext';
+import DebugConfig from './components/DebugConfig'; // Import du composant de débogage
 import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
 import AuthenticationPage from './pages/AuthenticationPage';
@@ -11,87 +13,68 @@ import CartPage from './pages/dashboard/CartPage';
 import CataloguePage from './pages/CataloguePage';
 import BookDetailsPage from './pages/BookDetailsPage';
 
-
-/*
-import ReservationsPage from './pages/dashboard/ReservationsPage';
-import ChatPage from './pages/dashboard/ChatPage';
-import HistoryPage from './pages/dashboard/HistoryPage';
-import NotificationsPage from './pages/dashboard/NotificationsPage';
-*/
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <RootLayout />,
-    children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-      
-      
-    ],
-  },
-  {
-    path: '/auth',
-    element: <AuthenticationPage />,
-  },
-  {
-    path: '/catalogue',
-    element: <CataloguePage />,
-  },
     {
-      path: '/book/:id',
-      element: <BookDetailsPage />,
+        path: '/',
+        element: <RootLayout />,
+        children: [
+            {
+                index: true,
+                element: <HomePage />,
+            },
+        ],
     },
-  {
-    path: '/dashboard',
-    element: <DashboardLayout />,
-    children: [
-      {
-        index: true,
-        element: <ProfilePage />,
-      },
-      {
-        path: 'profile',
-        element: <ProfilePage />,
-      },
-      {
-        path: 'statistics',
-        element: <StatisticsPage />,
-      },
-      
-      {
-        path: 'reservations',
-        element: <ReservationsPage />,
-      },
-      {
-        path: 'cart',
-        element: <CartPage />,
-      },/*
-      
-      
-      {
-        path: 'chat',
-        element: <ChatPage />,
-      },
-      {
-        path: 'history',
-        element: <HistoryPage />,
-      },
-      {
-        path: 'notifications',
-        element: <NotificationsPage />,
-      },*/
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
+    {
+        path: '/auth',
+        element: <AuthenticationPage />,
+    },
+    {
+        path: '/catalogue',
+        element: <CataloguePage />,
+    },
+    {
+        path: '/book/:id',
+        element: <BookDetailsPage />,
+    },
+    {
+        path: '/dashboard',
+        element: <DashboardLayout />,
+        children: [
+            {
+                index: true,
+                element: <ProfilePage />,
+            },
+            {
+                path: 'profile',
+                element: <ProfilePage />,
+            },
+            {
+                path: 'statistics',
+                element: <StatisticsPage />,
+            },
+            {
+                path: 'reservations',
+                element: <ReservationsPage />,
+            },
+            {
+                path: 'cart',
+                element: <CartPage />,
+            },
+        ],
+    },
+    {
+        path: '*',
+        element: <NotFoundPage />,
+    },
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+    return (
+        <ConfigProvider>
+            <RouterProvider router={router} />
+            <DebugConfig />
+        </ConfigProvider>
+    );
 }
 
 export default App;
