@@ -15,6 +15,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 
 // Import des interfaces depuis BookCard
 import { BiblioBook, Comment, CommentWithUserData } from '../components/books/BookCard';
+import Footer from "../components/layout/Footer.tsx";
 
 const BookDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -420,6 +421,8 @@ const BookDetailsPage: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
+
+            <Footer />
         </div>
     );
 };
