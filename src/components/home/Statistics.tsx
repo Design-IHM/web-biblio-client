@@ -3,6 +3,7 @@ import { Book, GraduationCap, Users, UserCheck, TrendingUp, Award, Clock, Buildi
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../configs/firebase';
 import { useConfig } from '../../contexts/ConfigContext';
+import { BiblioUser } from '../../types/auth';
 
 // Types pour les statistiques
 interface StatsData {
@@ -24,13 +25,7 @@ interface AnimatedStatsData {
     departments: number;
 }
 
-// Types pour les utilisateurs Firebase
-interface BiblioUser {
-    statut: 'etudiant' | 'enseignant';
-    departement?: string;
-}
-
-// Types pour React Component avec icône
+// Type pour React Component avec icône
 type IconComponent = React.ComponentType<{ className?: string; style?: React.CSSProperties; size?: number }>;
 
 // Props pour StatCard
@@ -99,35 +94,35 @@ const Statistics: React.FC = () => {
 
                 usersSnapshot.forEach((doc) => {
                     const userData = doc.data() as BiblioUser;
+
+                    // Compter par statut
                     if (userData.statut === 'etudiant') {
                         studentsCount++;
-                        if (userData.departement) {
-                            departmentsSet.add(userData.departement);
-                        }
                     } else if (userData.statut === 'enseignant') {
                         teachersCount++;
-                        if (userData.departement) {
-                            departmentsSet.add(userData.departement);
-                        }
+                    }
+
+                    // Collecter les départements uniques
+                    if (userData.departement && userData.departement.trim() !== '') {
+                        departmentsSet.add(userData.departement);
                     }
                 });
 
-                const finalStats: StatsData = {
+                const totalUsers = usersSnapshot.size;
+                const departmentsCount = departmentsSet.size;
+
+                setStats({
                     books: booksCount,
                     theses: thesesCount,
                     students: studentsCount,
                     teachers: teachersCount,
-                    totalUsers: usersSnapshot.size,
-                    departments: departmentsSet.size || 8, // Valeur par défaut si aucun département
+                    totalUsers,
+                    departments: departmentsCount,
                     loading: false
-                };
+                });
 
-                setStats(finalStats);
-
-                // Animation des compteurs
-                animateCounters(finalStats);
             } catch (error) {
-                console.error('Erreur lors du chargement des statistiques:', error);
+                console.error('❌ Erreur récupération statistiques:', error);
                 setStats(prev => ({ ...prev, loading: false }));
             }
         };
@@ -135,39 +130,53 @@ const Statistics: React.FC = () => {
         fetchStatistics();
     }, []);
 
-    const animateCounters = (finalStats: StatsData): void => {
-        const duration = 2000; // 2 secondes
-        const steps = 60;
-        const stepDuration = duration / steps;
+    // Animation des compteurs
+    useEffect(() => {
+        if (stats.loading) return;
 
-        let currentStep = 0;
-        const interval = setInterval(() => {
-            currentStep++;
-            const progress = currentStep / steps;
+        const animateCounter = (
+            targetValue: number,
+            _currentValue: number,
+            setter: (updater: (prev: number) => number) => void,
+            delay: number = 0
+        ) => {
+            setTimeout(() => {
+                const increment = Math.max(1, Math.ceil(targetValue / 30));
+                const timer = setInterval(() => {
+                    setter((prev: number) => {
+                        const nextValue = prev + increment;
+                        if (nextValue >= targetValue) {
+                            clearInterval(timer);
+                            return targetValue;
+                        }
+                        return nextValue;
+                    });
+                }, 50);
+            }, delay);
+        };
 
-            setAnimatedStats({
-                books: Math.floor(finalStats.books * progress),
-                theses: Math.floor(finalStats.theses * progress),
-                students: Math.floor(finalStats.students * progress),
-                teachers: Math.floor(finalStats.teachers * progress),
-                totalUsers: Math.floor(finalStats.totalUsers * progress),
-                departments: Math.floor(finalStats.departments * progress)
-            });
+        // Démarrer les animations avec des délais échelonnés
+        animateCounter(stats.books, animatedStats.books,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, books: updater(prev.books) })), 100);
 
-            if (currentStep >= steps) {
-                clearInterval(interval);
-                setAnimatedStats({
-                    books: finalStats.books,
-                    theses: finalStats.theses,
-                    students: finalStats.students,
-                    teachers: finalStats.teachers,
-                    totalUsers: finalStats.totalUsers,
-                    departments: finalStats.departments
-                });
-            }
-        }, stepDuration);
-    };
+        animateCounter(stats.theses, animatedStats.theses,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, theses: updater(prev.theses) })), 200);
 
+        animateCounter(stats.students, animatedStats.students,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, students: updater(prev.students) })), 300);
+
+        animateCounter(stats.teachers, animatedStats.teachers,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, teachers: updater(prev.teachers) })), 400);
+
+        animateCounter(stats.totalUsers, animatedStats.totalUsers,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, totalUsers: updater(prev.totalUsers) })), 500);
+
+        animateCounter(stats.departments, animatedStats.departments,
+            (updater) => setAnimatedStats((prev: AnimatedStatsData) => ({ ...prev, departments: updater(prev.departments) })), 600);
+
+    }, [stats]);
+
+    // Composant StatCard
     const StatCard: React.FC<StatCardProps> = ({
                                                    icon: Icon,
                                                    title,
@@ -180,58 +189,48 @@ const Statistics: React.FC = () => {
                                                    loading = false
                                                }) => (
         <div
-            className="bg-white rounded-2xl p-6 shadow-lg transform transition-all duration-500 hover:scale-105 hover:shadow-xl border border-gray-100"
+            className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 hover:border-opacity-50"
             style={{
                 animationDelay: `${delay}ms`,
-                animation: loading ? 'none' : 'fadeInUp 0.6s ease-out forwards'
+                borderColor: `${color}20`
             }}
         >
             <div className="flex items-center justify-between mb-4">
                 <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                    className="w-14 h-14 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${color}15` }}
                 >
-                    <Icon className="w-7 h-7" style={{ color }} />
+                    <Icon
+                        className="w-7 h-7"
+                        style={{ color }}
+                    />
                 </div>
-
                 <div className="text-right">
-                    <div className="flex items-baseline">
+                    <div className="text-2xl font-bold text-gray-800">
                         {loading ? (
-                            <div className="animate-pulse bg-gray-200 h-8 w-12 rounded"></div>
+                            <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
                         ) : (
-                            <>
-                <span
-                    className="text-3xl font-bold"
-                    style={{ color }}
-                >
-                  {value.toLocaleString()}
-                </span>
-                                {suffix && (
-                                    <span
-                                        className="text-lg font-medium ml-1"
-                                        style={{ color }}
-                                    >
-                    {suffix}
-                  </span>
-                                )}
-                            </>
+                            `${value.toLocaleString()}${suffix}`
                         )}
                     </div>
+                    <div className="text-sm text-gray-500">{title}</div>
                 </div>
             </div>
 
-            <h3 className="font-bold text-gray-800 mb-1">{title}</h3>
-            <p className="text-sm text-gray-600">{description}</p>
+            <p className="text-gray-600 text-sm">{description}</p>
 
-            {/* Progress bar optionnelle */}
             {showProgress && !loading && (
-                <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="mt-4">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Progression</span>
+                        <span>85%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div
-                            className="h-2 rounded-full transition-all duration-1000"
+                            className="h-1.5 rounded-full transition-all duration-1000"
                             style={{
-                                width: `${Math.min((value / 100) * 100, 100)}%`,
-                                backgroundColor: color
+                                backgroundColor: color,
+                                width: '85%'
                             }}
                         ></div>
                     </div>
@@ -240,74 +239,53 @@ const Statistics: React.FC = () => {
         </div>
     );
 
-    const AchievementBadge: React.FC<AchievementBadgeProps> = ({ icon: Icon, title, description, color }) => (
-        <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300">
+    // Composant AchievementBadge
+    const AchievementBadge: React.FC<AchievementBadgeProps> = ({
+                                                                   icon: Icon,
+                                                                   title,
+                                                                   description,
+                                                                   color
+                                                               }) => (
+        <div className="flex items-center space-x-3 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300">
             <div
-                className="w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0"
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${color}15` }}
             >
-                <Icon className="w-6 h-6" style={{ color }} />
+                <Icon
+                    className="w-5 h-5"
+                    style={{ color }}
+                />
             </div>
             <div>
-                <h4 className="font-bold text-gray-800">{title}</h4>
-                <p className="text-sm text-gray-600">{description}</p>
+                <h4 className="font-semibold text-gray-800 text-sm">{title}</h4>
+                <p className="text-gray-600 text-xs">{description}</p>
             </div>
         </div>
     );
 
     return (
-        <section className="py-20 bg-white relative overflow-hidden">
-            {/* Background decorations */}
-            <div className="absolute inset-0">
-                <div
-                    className="absolute top-20 right-20 w-64 h-64 rounded-full opacity-5 blur-3xl"
-                    style={{ backgroundColor: primaryColor }}
-                ></div>
-                <div
-                    className="absolute bottom-20 left-20 w-48 h-48 rounded-full opacity-5 blur-3xl"
-                    style={{ backgroundColor: secondaryColor }}
-                ></div>
-            </div>
-
-            <div className="container mx-auto px-4 relative z-10">
-                {/* Section Header */}
-                <div className="text-center mb-16">
-                    <div className="flex justify-center mb-4">
-                        <div
-                            className="w-16 h-1 rounded-full"
-                            style={{
-                                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
-                            }}
-                        />
-                    </div>
-
-                    <span
-                        className="inline-block py-2 px-4 rounded-full text-sm font-bold mb-4"
-                        style={{
-                            backgroundColor: `${primaryColor}10`,
-                            color: primaryColor
-                        }}
+        <section className="py-16 bg-gradient-to-b from-gray-50 to-white">
+            <div className="container mx-auto px-4">
+                {/* En-tête de section */}
+                <div className="text-center mb-12">
+                    <h2
+                        className="text-4xl font-bold mb-4"
+                        style={{ color: secondaryColor }}
                     >
-            Statistiques {organizationName}
-          </span>
-
-                    <h2 className="text-4xl font-bold mb-6" style={{ color: secondaryColor }}>
-                        Notre Impact Académique
+                        Statistiques de {organizationName}
                     </h2>
-
-                    <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                        Découvrez les chiffres qui témoignent de notre engagement
-                        envers l'excellence académique et l'innovation pédagogique.
+                    <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                        Découvrez les chiffres clés de notre bibliothèque et l'engagement de notre communauté académique.
                     </p>
                 </div>
 
-                {/* Main Statistics Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                {/* Grille des statistiques principales */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                     <StatCard
                         icon={Book}
-                        title="Livres Disponibles"
+                        title="Livres disponibles"
                         value={animatedStats.books}
-                        description="Ouvrages académiques et scientifiques"
+                        description="Ouvrages accessibles dans notre catalogue"
                         color={primaryColor}
                         delay={100}
                         loading={stats.loading}
@@ -317,18 +295,18 @@ const Statistics: React.FC = () => {
                         icon={GraduationCap}
                         title="Mémoires & Thèses"
                         value={animatedStats.theses}
-                        description="Travaux de recherche archivés"
-                        color={secondaryColor}
+                        description="Travaux de recherche disponibles"
+                        color="#10B981"
                         delay={200}
                         loading={stats.loading}
                     />
 
                     <StatCard
                         icon={Users}
-                        title="Étudiants Actifs"
+                        title="Étudiants"
                         value={animatedStats.students}
-                        description="Membres étudiants inscrits"
-                        color={primaryColor}
+                        description="Étudiants inscrits et actifs"
+                        color="#3B82F6"
                         delay={300}
                         loading={stats.loading}
                     />
@@ -337,22 +315,20 @@ const Statistics: React.FC = () => {
                         icon={UserCheck}
                         title="Enseignants"
                         value={animatedStats.teachers}
-                        description="Corps professoral enregistré"
-                        color={secondaryColor}
+                        description="Personnel enseignant membre"
+                        color="#8B5CF6"
                         delay={400}
                         loading={stats.loading}
                     />
-                </div>
 
-                {/* Secondary Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
                     <StatCard
                         icon={TrendingUp}
                         title="Total Utilisateurs"
                         value={animatedStats.totalUsers}
-                        description="Ensemble de la communauté"
-                        color="#10b981"
+                        description="Membres actifs de la communauté"
+                        color="#F59E0B"
                         delay={500}
+                        showProgress={true}
                         loading={stats.loading}
                     />
 
@@ -360,141 +336,58 @@ const Statistics: React.FC = () => {
                         icon={Building}
                         title="Départements"
                         value={animatedStats.departments}
-                        description="Filières académiques couvertes"
-                        color="#8b5cf6"
+                        description="Départements représentés"
+                        color="#EF4444"
                         delay={600}
-                        loading={stats.loading}
-                    />
-
-                    <StatCard
-                        icon={Award}
-                        title="Taux d'Activité"
-                        value={stats.totalUsers > 0 ? Math.round((animatedStats.students + animatedStats.teachers) / animatedStats.totalUsers * 100) : 0}
-                        suffix="%"
-                        description="Utilisateurs actifs vs inscrits"
-                        color="#f59e0b"
-                        delay={700}
-                        showProgress={true}
-                        loading={stats.loading}
-                    />
-
-                    <StatCard
-                        icon={Clock}
-                        title="Ressources par Utilisateur"
-                        value={animatedStats.totalUsers > 0 ? Math.round((animatedStats.books + animatedStats.theses) / animatedStats.totalUsers) : 0}
-                        description="Ratio ressources/utilisateur"
-                        color="#ef4444"
-                        delay={800}
                         loading={stats.loading}
                     />
                 </div>
 
-                {/* Achievements Section */}
-                <div className="bg-gray-50 rounded-3xl p-8">
+                {/* Section réalisations */}
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
                     <div className="text-center mb-8">
-                        <h3 className="text-2xl font-bold mb-4" style={{ color: secondaryColor }}>
+                        <h3
+                            className="text-2xl font-bold mb-2"
+                            style={{ color: secondaryColor }}
+                        >
                             Nos Réalisations
                         </h3>
                         <p className="text-gray-600">
-                            Reconnaissances et accomplissements de notre bibliothèque universitaire
+                            Les jalons importants de notre bibliothèque numérique
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <AchievementBadge
                             icon={Award}
-                            title="Système Digitalisé"
-                            description="Gestion moderne et efficace des ressources"
-                            color="#f59e0b"
-                        />
-
-                        <AchievementBadge
-                            icon={TrendingUp}
-                            title="Croissance Continue"
-                            description={`${animatedStats.books + animatedStats.theses} ressources disponibles`}
-                            color="#10b981"
-                        />
-
-                        <AchievementBadge
-                            icon={Users}
-                            title="Communauté Active"
-                            description={`${animatedStats.totalUsers} membres de la communauté`}
-                            color="#3b82f6"
-                        />
-
-                        <AchievementBadge
-                            icon={Book}
-                            title="Collection Diversifiée"
-                            description={`${animatedStats.departments} départements couverts`}
+                            title="Excellence académique"
+                            description="Ressources de qualité supérieure"
                             color={primaryColor}
                         />
 
                         <AchievementBadge
-                            icon={GraduationCap}
-                            title="Recherche Académique"
-                            description="Soutien à la recherche universitaire"
-                            color={secondaryColor}
+                            icon={Clock}
+                            title="Service 24/7"
+                            description="Accès continu aux ressources"
+                            color="#10B981"
                         />
 
                         <AchievementBadge
-                            icon={Clock}
-                            title="Disponibilité 24/7"
-                            description="Accès en ligne à tout moment"
-                            color="#8b5cf6"
+                            icon={Book}
+                            title="Catalogue diversifié"
+                            description="Large gamme de disciplines"
+                            color="#3B82F6"
+                        />
+
+                        <AchievementBadge
+                            icon={Users}
+                            title="Communauté active"
+                            description="Engagement élevé des utilisateurs"
+                            color="#8B5CF6"
                         />
                     </div>
                 </div>
-
-                {/* Call to Action */}
-                <div className="text-center mt-16">
-                    <div
-                        className="inline-block p-8 rounded-2xl shadow-xl"
-                        style={{
-                            background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`
-                        }}
-                    >
-                        <h3 className="text-2xl font-bold mb-4" style={{ color: secondaryColor }}>
-                            Rejoignez Notre Communauté Académique
-                        </h3>
-                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                            Devenez membre de {organizationName} et accédez à toutes nos ressources
-                            pour enrichir votre parcours académique.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a
-                                href="/auth"
-                                className="px-8 py-4 rounded-xl text-white font-semibold transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-                                style={{ backgroundColor: primaryColor }}
-                            >
-                                S'inscrire maintenant
-                            </a>
-                            <a
-                                href="/catalogue"
-                                className="px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg transform hover:scale-105 border-2"
-                                style={{
-                                    borderColor: secondaryColor,
-                                    color: secondaryColor
-                                }}
-                            >
-                                Explorer le catalogue
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
         </section>
     );
 };

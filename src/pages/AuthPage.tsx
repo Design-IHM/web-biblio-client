@@ -14,13 +14,11 @@ const AuthPage: React.FC = () => {
 
     // Gestion du succès de connexion
     const handleLoginSuccess = () => {
-        console.log('✅ Connexion réussie, redirection...');
-        navigate('/dashboard', { replace: true });
+        navigate('/', { replace: true });
     };
 
     // Gestion du succès d'inscription
     const handleRegisterSuccess = (email: string) => {
-        console.log('✅ Inscription réussie pour:', email);
         setEmailToVerify(email);
         setMode('verify-email');
     };
@@ -29,7 +27,6 @@ const AuthPage: React.FC = () => {
     const handleResendVerificationEmail = async () => {
         try {
             await authService.sendEmailVerification();
-            console.log('✅ Email de vérification renvoyé');
         } catch (error) {
             console.error('❌ Erreur renvoi email:', error);
             throw error;
@@ -46,8 +43,6 @@ const AuthPage: React.FC = () => {
     const handleForgotPassword = async (email: string) => {
         try {
             await authService.resetPassword(email);
-            console.log('✅ Email de réinitialisation envoyé');
-            // Vous pouvez ajouter une notification ici
         } catch (error) {
             console.error('❌ Erreur reset password:', error);
         }
