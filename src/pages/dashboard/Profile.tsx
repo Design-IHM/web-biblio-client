@@ -99,7 +99,7 @@ const Profile = () => {
                   </label>
                   <input 
                     type="text" 
-                    value="Jean" 
+                    value="BornBefore" 
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
                     style={{ focusRing: primaryColor }}
                   />
@@ -110,7 +110,7 @@ const Profile = () => {
                   </label>
                   <input 
                     type="text" 
-                    value="Dupont" 
+                    value="Design" 
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
                   />
                 </div>
@@ -120,7 +120,7 @@ const Profile = () => {
                   </label>
                   <input 
                     type="email" 
-                    value="jean.dupont@example.com" 
+                    value="bornbeforedesign@gmail.com" 
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
                   />
                 </div>

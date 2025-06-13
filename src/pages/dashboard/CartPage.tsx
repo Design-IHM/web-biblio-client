@@ -1,6 +1,5 @@
-// src/pages/dashboard/CartPage.tsx
 import { useState } from 'react';
-import { ShoppingCart, Trash2, Plus, Minus, CreditCard, Book, ArrowRight, ChevronLeft } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Download, Book, ArrowRight, ChevronLeft } from 'lucide-react';
 
 // Définition des variables de couleur
 const COLORS = {
@@ -17,7 +16,6 @@ interface CartItem {
   title: string;
   author: string;
   coverImage: string;
-  price: number;
   quantity: number;
   inStock: boolean;
   type: 'physical' | 'digital';
@@ -30,7 +28,6 @@ const cartItemsData: CartItem[] = [
     title: 'Le Petit Prince',
     author: 'Antoine de Saint-Exupéry',
     coverImage: '/api/placeholder/200/300',
-    price: 15.99,
     quantity: 1,
     inStock: true,
     type: 'physical'
@@ -40,7 +37,6 @@ const cartItemsData: CartItem[] = [
     title: 'Candide',
     author: 'Voltaire',
     coverImage: '/api/placeholder/200/300',
-    price: 12.50,
     quantity: 1,
     inStock: true,
     type: 'physical'
@@ -50,7 +46,6 @@ const cartItemsData: CartItem[] = [
     title: 'Voyage au centre de la Terre (Édition numérique)',
     author: 'Jules Verne',
     coverImage: '/api/placeholder/200/300',
-    price: 8.99,
     quantity: 1,
     inStock: true,
     type: 'digital'
@@ -81,7 +76,7 @@ const CartItemCard = ({
   };
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 ${fadeTransition} hover:shadow-md`}>
+    <div className={`bg-white rounded-xl shadow-sm overflow-hidden border-l-4 ${fadeTransition} hover:shadow-lg`} style={{ borderLeftColor: COLORS.primary }}>
       <div className="flex flex-col md:flex-row">
         {/* Image du livre */}
         <div className="md:w-1/6 p-4 flex items-center justify-center bg-gray-50">
@@ -103,25 +98,28 @@ const CartItemCard = ({
                 <p className="text-gray-600">{item.author}</p>
               </div>
               <div 
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
                   item.type === 'digital' 
                     ? 'bg-blue-100 text-blue-600' 
-                    : 'bg-orange-100 text-orange-600'
+                    : 'bg-orange-100'
                 } ${fadeTransition}`}
+                style={{ color: item.type === 'digital' ? undefined : COLORS.primary }}
               >
                 {item.type === 'digital' ? 'Numérique' : 'Physique'}
               </div>
             </div>
             
             <div className="flex items-center mt-2">
-              <Book size={16} className="text-gray-400 mr-1" />
-              <span className={`text-sm ${item.inStock ? 'text-green-500' : 'text-red-500'}`}>
-                {item.inStock ? 'En stock' : 'Rupture de stock'}
-              </span>
+              <div className="flex items-center">
+                <div className="w-3 h-3 mr-1 rounded-full" style={{ backgroundColor: item.inStock ? COLORS.success : COLORS.danger }}></div>
+                <span className={`text-sm ${item.inStock ? 'text-green-600' : 'text-red-500'}`}>
+                  {item.inStock ? 'Disponible' : 'Indisponible'}
+                </span>
+              </div>
             </div>
           </div>
           
-          {/* Quantité et prix */}
+          {/* Quantité et contrôles */}
           <div className="flex flex-col md:flex-row md:items-center mt-4 md:mt-0 space-y-4 md:space-y-0 md:space-x-6">
             {/* Contrôles de quantité - seulement pour les livres physiques */}
             {item.type === 'physical' && (
@@ -149,23 +147,29 @@ const CartItemCard = ({
               </div>
             )}
             
-            {/* Prix */}
-            <div className="text-right md:w-24">
-              <p className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                {(item.price * item.quantity).toFixed(2)} €
-              </p>
-              {item.quantity > 1 && (
-                <p className="text-xs text-gray-500">
-                  {item.price.toFixed(2)} € chacun
-                </p>
-              )}
+            {/* Type de prêt */}
+            <div className="text-right">
+              <div className="flex items-center gap-2">
+                {item.type === 'digital' ? (
+                  <button 
+                    className="px-3 py-1 rounded-md text-white flex items-center gap-1"
+                    style={{ backgroundColor: COLORS.primary }}
+                  >
+                    <Download size={14} />
+                    Télécharger
+                  </button>
+                ) : (
+                  <span className="text-gray-700 font-medium">
+                    Prêt pour {item.quantity} semaine{item.quantity > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </div>
             
             {/* Bouton supprimer */}
             <button 
               onClick={() => onRemove(item.id)}
-              className={`p-2 rounded-full ${fadeTransition} hover:bg-red-50`}
-              style={{ color: COLORS.danger }}
+              className={`p-2 rounded-full ${fadeTransition} text-gray-500 hover:bg-red-50 hover:text-red-500`}
             >
               <Trash2 size={18} />
             </button>
@@ -185,88 +189,93 @@ const CartSummary = ({
   onCheckout: () => void;
 }) => {
   // Calculs pour le récapitulatif
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = items.some(item => item.type === 'physical') ? 3.99 : 0;
-  const tax = subtotal * 0.2; // TVA 20%
-  const total = subtotal + shipping + tax;
-  
   const physicalCount = items.filter(item => item.type === 'physical')
     .reduce((sum, item) => sum + item.quantity, 0);
   const digitalCount = items.filter(item => item.type === 'digital').length;
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className={`bg-white rounded-xl shadow-md p-6 sticky top-6 ${fadeTransition}`}>
-      <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.secondary }}>Récapitulatif</h3>
-      
-      <div className="space-y-3">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Sous-total ({items.length} articles)</span>
-          <span className="font-medium">{subtotal.toFixed(2)} €</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="text-gray-600">TVA (20%)</span>
-          <span className="font-medium">{tax.toFixed(2)} €</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="text-gray-600">Frais de livraison</span>
-          <span className="font-medium">{shipping.toFixed(2)} €</span>
-        </div>
-        
-        <div className="border-t border-gray-200 pt-3 mt-3">
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
-            <span style={{ color: COLORS.primary }}>{total.toFixed(2)} €</span>
-          </div>
-        </div>
+    <div className={`rounded-xl overflow-hidden shadow-md ${fadeTransition}`}>
+      <div className="p-4 text-white" style={{ backgroundColor: COLORS.secondary }}>
+        <h3 className="text-lg font-bold mb-1">Récapitulatif de votre emprunt</h3>
+        <p className="text-sm opacity-80">Bibliothèque ENSPY</p>
       </div>
       
-      <button 
-        onClick={onCheckout}
-        className={`w-full mt-6 px-4 py-3 rounded-lg text-white font-medium flex items-center justify-center ${fadeTransition} transform hover:scale-[1.02] active:scale-[0.98]`}
-        style={{ 
-          backgroundColor: COLORS.primary,
-          boxShadow: `0 4px 14px 0 ${COLORS.primary}30`
-        }}
-      >
-        <CreditCard size={18} className="mr-2" />
-        Procéder au paiement
-      </button>
-      
-      <div className="mt-6 space-y-2 text-sm text-gray-500">
-        <div className="flex items-start">
-          <div className="bg-orange-100 rounded-full p-1 mr-2 mt-0.5">
-            <Book size={12} className="text-orange-500" />
+      <div className="bg-white p-6">
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Nombre total d'ouvrages</span>
+            <span className="font-semibold" style={{ color: COLORS.primary }}>
+              {totalItems} ouvrage{totalItems > 1 ? 's' : ''}
+            </span>
           </div>
-          <p>
-            {physicalCount > 0 
-              ? `${physicalCount} livre${physicalCount > 1 ? 's' : ''} physique${physicalCount > 1 ? 's' : ''} à livrer`
-              : 'Aucun livre physique'
-            }
-          </p>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">Durée du prêt</span>
+            <span className="font-semibold" style={{ color: COLORS.secondary }}>2 semaines</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">Date de retour prévue</span>
+            <span className="font-semibold" style={{ color: COLORS.secondary }}>
+              {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}
+            </span>
+          </div>
         </div>
-        <div className="flex items-start">
-          <div className="bg-blue-100 rounded-full p-1 mr-2 mt-0.5">
-            <Book size={12} className="text-blue-500" />
+        
+        <button 
+          onClick={onCheckout}
+          className={`w-full mt-6 px-4 py-3 rounded-lg text-white font-medium flex items-center justify-center ${fadeTransition} transform hover:scale-[1.02] active:scale-[0.98]`}
+          style={{ 
+            backgroundColor: COLORS.primary,
+            boxShadow: `0 4px 14px 0 ${COLORS.primary}30` 
+          }}
+        >
+          <Book size={18} className="mr-2" />
+          Confirmer l'emprunt
+        </button>
+        
+        <div className="mt-6 space-y-3">
+          <div className="flex items-start p-3 rounded-lg bg-gray-50">
+            <div className="bg-orange-100 rounded-full p-1 mr-2 mt-0.5" style={{ color: COLORS.primary }}>
+              <Book size={14} />
+            </div>
+            <div>
+              <p className="font-medium text-sm" style={{ color: COLORS.secondary }}>
+                {physicalCount > 0 
+                  ? `${physicalCount} livre${physicalCount > 1 ? 's' : ''} physique${physicalCount > 1 ? 's' : ''}`
+                  : 'Aucun livre physique'
+                }
+              </p>
+              <p className="text-xs text-gray-500">Disponible(s) à l'emprunt au comptoir de la bibliothèque</p>
+            </div>
           </div>
-          <p>
-            {digitalCount > 0 
-              ? `${digitalCount} livre${digitalCount > 1 ? 's' : ''} numérique${digitalCount > 1 ? 's' : ''} à télécharger`
-              : 'Aucun livre numérique'
-            }
-          </p>
+          
+          <div className="flex items-start p-3 rounded-lg bg-gray-50">
+            <div className="bg-blue-100 rounded-full p-1 mr-2 mt-0.5 text-blue-500">
+              <Download size={14} />
+            </div>
+            <div>
+              <p className="font-medium text-sm" style={{ color: COLORS.secondary }}>
+                {digitalCount > 0 
+                  ? `${digitalCount} livre${digitalCount > 1 ? 's' : ''} numérique${digitalCount > 1 ? 's' : ''}`
+                  : 'Aucun livre numérique'
+                }
+              </p>
+              <p className="text-xs text-gray-500">Téléchargeable(s) immédiatement après confirmation</p>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Badge de sécurité */}
-      <div className="mt-8 pt-4 border-t border-gray-100">
+      <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-center">
-          <div className="bg-green-50 text-green-600 text-xs px-3 py-1 rounded-full flex items-center">
+          <div className="text-xs px-3 py-1 rounded-full flex items-center" style={{ backgroundColor: `${COLORS.secondary}20`, color: COLORS.secondary }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            Paiement sécurisé
+            Service Bibliothèque ENSPY
           </div>
         </div>
       </div>
@@ -274,16 +283,16 @@ const CartSummary = ({
   );
 };
 
-// Bouton de suggestion de produit
-const SuggestedProductButton = ({ title, price }: { title: string, price: number }) => {
+// Bouton de suggestion de livre
+const SuggestedBookButton = ({ title, author }: { title: string, author: string }) => {
   return (
     <div className={`p-4 border border-gray-100 rounded-lg shadow-sm bg-white flex items-center justify-between ${fadeTransition} hover:shadow-md cursor-pointer`}>
       <div>
         <h4 className="font-medium" style={{ color: COLORS.secondary }}>{title}</h4>
-        <p className="text-sm" style={{ color: COLORS.primary }}>{price.toFixed(2)} €</p>
+        <p className="text-sm text-gray-600">{author}</p>
       </div>
       <button 
-        className="p-2 rounded-full bg-orange-50 hover:bg-orange-100 transition-colors"
+        className="p-2 rounded-full hover:bg-orange-100 transition-colors"
         style={{ color: COLORS.primary }}
       >
         <Plus size={16} />
@@ -292,15 +301,19 @@ const SuggestedProductButton = ({ title, price }: { title: string, price: number
   );
 };
 
-// Section d'articles suggérés
-const SuggestedProducts = () => {
+// Section de livres suggérés
+const SuggestedBooks = () => {
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.secondary }}>Vous pourriez aimer</h3>
-      <div className="space-y-3">
-        <SuggestedProductButton title="Les Misérables" price={18.99} />
-        <SuggestedProductButton title="Notre-Dame de Paris" price={14.50} />
-        <SuggestedProductButton title="L'Étranger (Numérique)" price={7.99} />
+    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="p-4 text-white" style={{ backgroundColor: COLORS.primary }}>
+        <h3 className="text-lg font-bold">Recommandations pour vous</h3>
+      </div>
+      <div className="p-6">
+        <div className="space-y-3">
+          <SuggestedBookButton title="Les Misérables" author="Victor Hugo" />
+          <SuggestedBookButton title="Notre-Dame de Paris" author="Victor Hugo" />
+          <SuggestedBookButton title="L'Étranger (Numérique)" author="Albert Camus" />
+        </div>
       </div>
     </div>
   );
@@ -324,10 +337,10 @@ const CartPage = () => {
     setCartItems(items => items.filter(item => item.id !== id));
   };
 
-  // Gestionnaire de paiement
+  // Gestionnaire de prêt
   const handleCheckout = () => {
-    alert('Redirection vers la page de paiement...');
-    // Logique de redirection vers la page de paiement
+    alert('Confirmation de votre emprunt...');
+    // Logique de redirection ou de confirmation
   };
 
   return (
@@ -350,28 +363,31 @@ const CartPage = () => {
               Catalogue
             </a>
             <span className="mx-2 text-gray-400">/</span>
-            <span style={{ color: COLORS.primary }}>Panier</span>
+            <span style={{ color: COLORS.primary }}>Mes emprunts</span>
           </nav>
           
-          {/* En-tête */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: COLORS.secondary }}>Mon Panier</h1>
+          {/* En-tête avec une bande décorative */}
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-2 rounded-full" style={{ backgroundColor: COLORS.primary }}></div>
+            <div className="pl-6">
+              <h1 className="text-3xl font-bold" style={{ color: COLORS.secondary }}>Mes Emprunts</h1>
               <p className="text-gray-500">
                 {cartItems.length > 0 
-                  ? `${cartItems.length} article${cartItems.length > 1 ? 's' : ''} dans votre panier`
-                  : 'Votre panier est vide'
+                  ? `${cartItems.length} ouvrage${cartItems.length > 1 ? 's' : ''} dans votre liste d'emprunts`
+                  : 'Votre liste d\'emprunts est vide'
                 }
               </p>
             </div>
-            
+          </div>
+
+          <div className="flex justify-end">
             <a 
               href="/catalogue" 
-              className={`flex items-center px-4 py-2 rounded-lg border border-blue-100 bg-blue-50 ${fadeTransition} hover:bg-blue-100`}
-              style={{ color: COLORS.secondary }}
+              className={`flex items-center px-4 py-2 rounded-lg ${fadeTransition} text-white`}
+              style={{ backgroundColor: COLORS.secondary }}
             >
               <ChevronLeft size={16} className="mr-1" />
-              Continuer mes achats
+              Retour au catalogue
             </a>
           </div>
           
@@ -391,46 +407,54 @@ const CartPage = () => {
                 
                 {/* Section suggestions */}
                 <div className="mt-8">
-                  <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.secondary }}>Recommandations</h3>
+                  <h3 className="text-xl font-bold mb-4 flex items-center" style={{ color: COLORS.secondary }}>
+                    <span className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-white text-xs" style={{ backgroundColor: COLORS.primary }}>+</span>
+                    Suggestions de lecture
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <SuggestedProductButton title="Les Misérables" price={18.99} />
-                    <SuggestedProductButton title="Notre-Dame de Paris" price={14.50} />
+                    <SuggestedBookButton title="Les Misérables" author="Victor Hugo" />
+                    <SuggestedBookButton title="Notre-Dame de Paris" author="Victor Hugo" />
                   </div>
                 </div>
               </div>
               
               {/* Bloc latéral */}
               <div className="lg:col-span-1 space-y-6">
-                {/* Résumé du panier */}
+                {/* Résumé des emprunts */}
                 <CartSummary items={cartItems} onCheckout={handleCheckout} />
                 
-                {/* Code promo */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h3 className="text-lg font-bold mb-3" style={{ color: COLORS.secondary }}>Code promo</h3>
-                  <div className="flex">
-                    <input 
-                      type="text" 
-                      placeholder="Entrez votre code"
-                      className="flex-1 p-2 border border-gray-200 rounded-l-md focus:outline-none focus:border-orange-300"
-                    />
-                    <button 
-                      className="px-4 py-2 rounded-r-md text-white"
-                      style={{ backgroundColor: COLORS.secondary }}
-                    >
-                      Appliquer
-                    </button>
+                {/* Code de lecteur */}
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                  <div className="p-4" style={{ backgroundColor: COLORS.secondary, color: 'white' }}>
+                    <h3 className="text-lg font-bold">Code de lecteur</h3>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex">
+                      <input 
+                        type="text" 
+                        placeholder="Entrez votre code de lecteur"
+                        className="flex-1 p-2 border border-gray-200 rounded-l-md focus:outline-none"
+                        style={{ borderColor: COLORS.primary }}
+                      />
+                      <button 
+                        className="px-4 py-2 rounded-r-md text-white"
+                        style={{ backgroundColor: COLORS.primary }}
+                      >
+                        Vérifier
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
             <div className={`bg-white rounded-xl shadow-md p-10 text-center ${fadeTransition}`}>
-              <div className="mx-auto w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
-                <ShoppingCart size={36} style={{ color: COLORS.primary }} />
+              <div className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: `${COLORS.primary}20`, color: COLORS.primary }}>
+                <ShoppingCart size={36} />
               </div>
-              <h2 className="text-2xl font-bold mb-3" style={{ color: COLORS.secondary }}>Votre panier est vide</h2>
+              <h2 className="text-2xl font-bold mb-3" style={{ color: COLORS.secondary }}>Votre liste d'emprunts est vide</h2>
               <p className="text-gray-600 mb-6">
-                Explorez notre catalogue pour découvrir nos livres et ajouter des articles à votre panier.
+                Explorez notre catalogue pour découvrir nos livres et ajouter des ouvrages à votre liste d'emprunts.
               </p>
               <a 
                 href="/catalogue"
@@ -443,41 +467,45 @@ const CartPage = () => {
             </div>
           )}
           
-          {/* Section d'aide */}
-          <div className="mt-12 p-6 bg-gray-50 border border-gray-100 rounded-xl">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: COLORS.secondary }}>Besoin d'aide ?</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-start">
-                <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary + '20' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: COLORS.primary }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
+          {/* Section services */}
+          <div className="mt-12 rounded-xl overflow-hidden">
+            <div className="p-4 text-white" style={{ backgroundColor: COLORS.secondary }}>
+              <h3 className="text-lg font-bold">Services de la Bibliothèque ENSPY</h3>
+            </div>
+            <div className="bg-white p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: `${COLORS.primary}10` }}>
+                  <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary, color: 'white' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Diversité des collections</h4>
+                    <p className="text-sm text-gray-600">Une large sélection de livres et de mémoires disponibles</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Diversité et disponibilité</h4>
-                  <p className="text-sm text-gray-600">Une panoplie de livres et de memeores disponibles</p>
+                <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: `${COLORS.primary}10` }}>
+                  <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary, color: 'white' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Recommandations</h4>
+                    <p className="text-sm text-gray-600">Personnalisées selon vos intérêts académiques</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start">
-                <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary + '20' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: COLORS.primary }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Recommandations</h4>
-                  <p className="text-sm text-gray-600">Basées sur la popularité, sur vos lectures et votre entourage</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary + '20' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: COLORS.primary }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Support</h4>
-                  <p className="text-sm text-gray-600">Assistance client disponible 7j/7</p>
+                <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: `${COLORS.primary}10` }}>
+                  <div className="mr-3 p-2 rounded-full" style={{ backgroundColor: COLORS.primary, color: 'white' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold" style={{ color: COLORS.secondary }}>Assistance</h4>
+                    <p className="text-sm text-gray-600">Bibliothécaires disponibles pour vous aider</p>
+                  </div>
                 </div>
               </div>
             </div>

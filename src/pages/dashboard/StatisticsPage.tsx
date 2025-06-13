@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { BarChart4, DollarSign, TrendingUp, TrendingDown, Users, Percent, ArrowRight } from 'lucide-react';
+import { BookOpen, Users, Clock, TrendingUp, TrendingDown, BookMarked, Award, ArrowRight } from 'lucide-react';
 
-// Définition des variables de couleur
+// Brand colors
 const COLORS = {
   primary: '#ff8c00',    // Orange
   secondary: '#1b263b',  // Dark Blue
-  lightGray: '#f8f9fa',
-  accent: '#4ade80',     // Green
+  primaryLight: '#ffe0b2', // Light orange for backgrounds
+  secondaryLight: '#d0d7e5', // Light blue for backgrounds
+  success: '#4ade80',    // Green
   danger: '#ef4444',     // Red
 };
 
-// Données pour le graphique
+// Data for the chart
 const chartData = [
   { day: '01', value: 120 },
   { day: '02', value: 150 },
@@ -39,15 +40,15 @@ const chartData = [
   { day: '25', value: 270 },
 ];
 
-// Données pour la section des transactions
-const transactions = [
+// Data for the activity section
+const activities = [
   { 
     id: 1, 
     title: 'Roman historique',
     category: 'Livre',
     time: '15:30',
     date: 'Aujourd\'hui',
-    amount: '-25.00',
+    action: 'Emprunté',
     color: '#3b82f6', // Blue
     icon: '📚'
   },
@@ -57,8 +58,8 @@ const transactions = [
     category: 'Service',
     time: '12:45',
     date: 'Aujourd\'hui',
-    amount: '-15.99',
-    color: '#8b5cf6', // Purple
+    action: 'Inscription',
+    color: COLORS.primary, // Orange
     icon: '⭐'
   },
   { 
@@ -67,116 +68,125 @@ const transactions = [
     category: 'BD/Manga',
     time: '10:15',
     date: 'Aujourd\'hui',
-    amount: '-12.50',
-    color: '#ec4899', // Pink
+    action: 'Emprunté',
+    color: COLORS.secondary, // Dark blue
     icon: '🗯️'
   },
   { 
     id: 4, 
-    title: 'Remboursement',
-    category: 'Retour',
+    title: 'Encyclopédie Scientifique',
+    category: 'Référence',
     time: '09:30',
     date: 'Hier',
-    amount: '+35.00',
-    color: '#10b981', // Green
-    icon: '💰'
+    action: 'Retourné',
+    color: COLORS.success, // Green
+    icon: '📖'
   },
 ];
 
-// Données pour les statistiques d'utilisation
+// Data for usage statistics
 const usageStats = [
   { 
     title: 'Romans',
     percentage: 65,
-    value: '652.400',
-    color: '#3b82f6', // Blue
+    value: '652',
+    color: COLORS.primary, // Orange
   },
   { 
     title: 'Sciences',
     percentage: 45,
-    value: '478.200',
-    color: '#8b5cf6', // Purple
+    value: '478',
+    color: COLORS.secondary, // Dark blue
   },
   { 
     title: 'BD/Manga',
     percentage: 80,
-    value: '892.500',
-    color: '#ec4899', // Pink
+    value: '892',
+    color: '#8b5cf6', // Purple
   },
   { 
     title: 'Revues',
     percentage: 30,
-    value: '324.700',
-    color: '#10b981', // Green
+    value: '324',
+    color: COLORS.success, // Green
   },
   { 
     title: 'Numérique',
     percentage: 55,
-    value: '556.000',
-    color: '#f59e0b', // Amber
+    value: '556',
+    color: COLORS.primary, // Orange
   },
 ];
 
-// Section de carte statistique
+// Stat card component
 interface StatCardProps {
   title: string;
   value: string;
-  percentChange: number;
+  percentChange?: number;
   icon: React.ReactNode;
   color: string;
+  bgColor: string;
 }
 
-const StatCard = ({ title, value, percentChange, icon, color }: StatCardProps) => {
-  const isPositive = percentChange >= 0;
+const StatCard = ({ title, value, percentChange, icon, color, bgColor }: StatCardProps) => {
+  const isPositive = percentChange ? percentChange >= 0 : null;
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 flex flex-col transition-transform duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className="bg-white rounded-xl shadow-md p-6 flex flex-col transition-transform duration-300 hover:shadow-lg hover:-translate-y-1 border-t-4" style={{ borderColor: color }}>
       <div className="flex items-center justify-between mb-4">
         <div 
           className="w-12 h-12 rounded-lg flex items-center justify-center" 
-          style={{ backgroundColor: `${color}20` }}
+          style={{ backgroundColor: bgColor }}
         >
           <div style={{ color }}>{icon}</div>
         </div>
-        <span 
-          className={`flex items-center text-sm font-medium ${
-            isPositive ? 'text-green-500' : 'text-red-500'
-          }`}
-        >
-          {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
-          {isPositive ? '+' : ''}{percentChange}%
-        </span>
+        {percentChange !== undefined && (
+          <span 
+            className={`flex items-center text-sm font-medium ${
+              isPositive ? 'text-green-500' : 'text-red-500'
+            }`}
+          >
+            {isPositive ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+            {isPositive ? '+' : ''}{percentChange}%
+          </span>
+        )}
       </div>
       <div className="mt-2">
         <h3 className="text-sm text-gray-500 font-medium">{title}</h3>
-        <p className="text-2xl font-bold mt-1">{value}</p>
+        <p className="text-2xl font-bold mt-1" style={{ color: COLORS.secondary }}>{value}</p>
       </div>
     </div>
   );
 };
 
 const StatisticsPage = () => {
-  // États pour les filtres de période
+  // States for period filters
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
 
-  // Maximun du graphique
+  // Chart maximum value
   const maxValue = Math.max(...chartData.map(item => item.value));
 
   return (
-    <div className="space-y-8">
-      {/* En-tête */}
+    <div className="space-y-8 bg-gray-50 p-6 min-h-screen">
+      {/* Header with logo */}
       <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Tableau de bord</h1>
-          <p className="text-gray-500">01 - 25 Avril, 2025</p>
+        <div className="flex items-center">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: COLORS.primary }}>
+            <BookOpen size={24} color="white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: COLORS.secondary }}>Biblio ENSPY</h1>
+            <p className="text-gray-500">01 - 25 Avril, 2025</p>
+          </div>
         </div>
         <div className="flex space-x-2 mt-4 md:mt-0">
           <button 
             className={`px-4 py-2 rounded-lg transition-all ${
               period === 'day' 
-                ? 'bg-orange-100 text-orange-600' 
+                ? `text-white` 
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
+            style={{ backgroundColor: period === 'day' ? COLORS.primary : '' }}
             onClick={() => setPeriod('day')}
           >
             Jour
@@ -184,9 +194,10 @@ const StatisticsPage = () => {
           <button 
             className={`px-4 py-2 rounded-lg transition-all ${
               period === 'week' 
-                ? 'bg-orange-100 text-orange-600' 
+                ? `text-white` 
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
+            style={{ backgroundColor: period === 'week' ? COLORS.primary : '' }}
             onClick={() => setPeriod('week')}
           >
             Semaine
@@ -194,9 +205,10 @@ const StatisticsPage = () => {
           <button 
             className={`px-4 py-2 rounded-lg transition-all ${
               period === 'month' 
-                ? 'bg-orange-100 text-orange-600' 
+                ? `text-white` 
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
+            style={{ backgroundColor: period === 'month' ? COLORS.primary : '' }}
             onClick={() => setPeriod('month')}
           >
             Mois
@@ -204,9 +216,10 @@ const StatisticsPage = () => {
           <button 
             className={`px-4 py-2 rounded-lg transition-all ${
               period === 'year' 
-                ? 'bg-orange-100 text-orange-600' 
+                ? `text-white` 
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
+            style={{ backgroundColor: period === 'year' ? COLORS.primary : '' }}
             onClick={() => setPeriod('year')}
           >
             Année
@@ -214,51 +227,55 @@ const StatisticsPage = () => {
         </div>
       </div>
 
-      {/* Cartes statistiques */}
+      {/* Statistics cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Livres empruntés"
           value="256"
           percentChange={12.8}
-          icon={<BarChart4 size={24} />}
+          icon={<BookOpen size={24} />}
           color={COLORS.primary}
+          bgColor={COLORS.primaryLight}
         />
         <StatCard 
-          title="Total dépensé"
-          value="185,20 €"
-          percentChange={-4.3}
-          icon={<DollarSign size={24} />}
-          color="#8b5cf6"
+          title="Membres actifs"
+          value="185"
+          percentChange={8.3}
+          icon={<Users size={24} />}
+          color={COLORS.secondary}
+          bgColor={COLORS.secondaryLight}
         />
         <StatCard 
           title="Livres en retard"
           value="3"
-          percentChange={0}
-          icon={<Percent size={24} />}
-          color="#ef4444"
+          percentChange={-25}
+          icon={<Clock size={24} />}
+          color={COLORS.danger}
+          bgColor="#fde2e2"
         />
         <StatCard 
           title="Recommandations"
           value="28"
           percentChange={32.5}
-          icon={<Users size={24} />}
-          color="#10b981"
+          icon={<Award size={24} />}
+          color={COLORS.success}
+          bgColor="#d1fae5"
         />
       </div>
 
-      {/* Section principale avec graphique et transactions */}
+      {/* Main section with chart and activities */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Graphique d'activité */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+        {/* Activity chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderColor: COLORS.primary }}>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Activité</h2>
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="inline-block w-3 h-3 rounded-full bg-blue-400 mr-2"></span>
+            <h2 className="text-xl font-bold" style={{ color: COLORS.secondary }}>Activité de prêt</h2>
+            <div className="flex items-center text-sm">
+              <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS.primary }}></span>
               Emprunts
             </div>
           </div>
           
-          {/* Graphique en barres */}
+          {/* Bar chart */}
           <div className="h-64 flex items-end space-x-2">
             {chartData.map((data, index) => (
               <div 
@@ -268,8 +285,9 @@ const StatisticsPage = () => {
                 <div 
                   className="w-full max-w-full rounded-t-md transition-all duration-300 hover:opacity-80"
                   style={{ 
-                    height: `${(data.value / maxValue) * 100}%`, 
-                    backgroundColor: index === chartData.length - 1 ? COLORS.primary : '#e2e8f0',
+                    height: `${(data.value / maxValue) * 100}%`,
+                    backgroundColor: COLORS.primary,
+                    opacity: index === chartData.length - 1 ? 1 : 0.5 + (index / (chartData.length * 2)),
                     minHeight: '4px'
                   }}
                 ></div>
@@ -279,35 +297,35 @@ const StatisticsPage = () => {
           </div>
         </div>
 
-        {/* Transactions récentes */}
-        <div className="bg-white rounded-xl shadow-md p-6">
+        {/* Recent activities */}
+        <div className="bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderColor: COLORS.secondary }}>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Transactions récentes</h2>
-            <button className="text-sm text-blue-500 flex items-center">
+            <h2 className="text-xl font-bold" style={{ color: COLORS.secondary }}>Activités récentes</h2>
+            <button className="text-sm flex items-center" style={{ color: COLORS.primary }}>
               Voir tout <ArrowRight size={16} className="ml-1" />
             </button>
           </div>
 
           <div className="space-y-4">
-            {transactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+            {activities.map((activity) => (
+              <div key={activity.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="flex items-center">
                   <div 
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: `${transaction.color}15` }}
+                    style={{ backgroundColor: `${activity.color}20` }}
                   >
-                    <span className="text-lg">{transaction.icon}</span>
+                    <span className="text-lg">{activity.icon}</span>
                   </div>
                   <div>
-                    <h4 className="font-medium">{transaction.title}</h4>
-                    <p className="text-sm text-gray-500">{transaction.category}</p>
+                    <h4 className="font-medium">{activity.title}</h4>
+                    <p className="text-sm text-gray-500">{activity.category}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={transaction.amount.startsWith('-') ? 'text-gray-800' : 'text-green-500'}>
-                    {transaction.amount} €
+                  <p style={{ color: activity.action === 'Retourné' ? COLORS.success : COLORS.secondary }}>
+                    {activity.action}
                   </p>
-                  <p className="text-xs text-gray-500">{transaction.time} • {transaction.date}</p>
+                  <p className="text-xs text-gray-500">{activity.time} • {activity.date}</p>
                 </div>
               </div>
             ))}
@@ -315,14 +333,14 @@ const StatisticsPage = () => {
         </div>
       </div>
 
-      {/* Section statistiques d'utilisation */}
-      <div className="bg-white rounded-xl shadow-md p-6">
+      {/* Usage statistics section */}
+      <div className="bg-white rounded-xl shadow-md p-6 border-t-4" style={{ borderColor: COLORS.secondary }}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Catégories populaires</h2>
-          <div className="text-sm text-gray-500">Ce mois-ci</div>
+          <h2 className="text-xl font-bold" style={{ color: COLORS.secondary }}>Catégories populaires</h2>
+          <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: COLORS.primaryLight, color: COLORS.primary }}>Ce mois-ci</div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
           {usageStats.map((stat, index) => (
             <div key={index} className="flex flex-col">
               <div className="flex justify-between mb-2">
@@ -338,9 +356,71 @@ const StatisticsPage = () => {
                   }}
                 ></div>
               </div>
-              <span className="text-sm text-gray-500">{stat.value}</span>
+              <span className="text-sm">{stat.value} livres</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Library info section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderColor: COLORS.primary }}>
+          <div className="flex items-center mb-4">
+            <BookMarked size={24} style={{ color: COLORS.primary }} className="mr-3" />
+            <h2 className="text-xl font-bold" style={{ color: COLORS.secondary }}>Nouveaux arrivages</h2>
+          </div>
+          <p className="mb-4 text-gray-600">Découvrez les nouvelles acquisitions de la bibliothèque:</p>
+          <div className="space-y-2">
+            <div className="p-3 rounded-lg" style={{ backgroundColor: COLORS.primaryLight }}>
+              <p className="font-medium">Physique Quantique - Introduction</p>
+              <p className="text-sm text-gray-600">Sciences - Disponible</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: COLORS.secondaryLight }}>
+              <p className="font-medium">Intelligence Artificielle et Société</p>
+              <p className="text-sm text-gray-600">Technologie - Disponible</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: COLORS.primaryLight }}>
+              <p className="font-medium">Les Architectes du Monde Nouveau</p>
+              <p className="text-sm text-gray-600">Histoire - Disponible</p>
+            </div>
+          </div>
+          <button 
+            className="mt-4 w-full py-2 rounded-lg text-white font-medium transition-all hover:opacity-90 flex items-center justify-center"
+            style={{ backgroundColor: COLORS.primary }}
+          >
+            Explorer la collection <ArrowRight size={16} className="ml-2" />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderColor: COLORS.secondary }}>
+          <div className="flex items-center mb-4">
+            <Users size={24} style={{ color: COLORS.secondary }} className="mr-3" />
+            <h2 className="text-xl font-bold" style={{ color: COLORS.secondary }}>Horaires d'ouverture</h2>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="font-medium">Lundi - Vendredi</span>
+              <span>8h00 - 20h00</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Samedi</span>
+              <span>9h00 - 18h00</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Dimanche</span>
+              <span>10h00 - 16h00</span>
+            </div>
+          </div>
+          <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: COLORS.secondaryLight }}>
+            <h3 className="font-medium mb-2" style={{ color: COLORS.secondary }}>Annonce</h3>
+            <p className="text-sm text-gray-600">Atelier de recherche documentaire le 30 avril. Inscrivez-vous à l'accueil de la bibliothèque.</p>
+          </div>
+          <button 
+            className="mt-4 w-full py-2 rounded-lg text-white font-medium transition-all hover:opacity-90 flex items-center justify-center"
+            style={{ backgroundColor: COLORS.secondary }}
+          >
+            Plus d'informations <ArrowRight size={16} className="ml-2" />
+          </button>
         </div>
       </div>
     </div>
