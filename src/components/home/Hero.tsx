@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ArrowRight, LogIn, Book, Users, Clock, GraduationCap } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
+import { useConfig } from '../../contexts/ConfigContext';
 import { db } from '../../configs/firebase';
 import heroImage from "../../assets/images/home/hero_image.jpg"
 import book1 from "../../assets/images/home/book1.jpg"
@@ -18,10 +19,11 @@ const UniversityHero = () => {
     });
 
     // Configuration par défaut (remplacez par useConfig dans votre projet)
-    const orgSettings = {
-        Theme: { Primary: '#ff8c00', Secondary: '#1b263b' },
-        Name: 'BiblioENSPY'
-    };
+    // const orgSettings = {
+    //     Theme: { Primary: '#ff8c00', Secondary: '#1b263b' },
+    //     Name: 'BiblioENSPY'
+    // };
+    const { orgSettings } = useConfig();
 
     useEffect(() => {
         const handleScroll = () => {

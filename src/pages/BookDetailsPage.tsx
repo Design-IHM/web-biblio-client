@@ -12,6 +12,7 @@ import BookDescription from '../components/books/BookDescription';
 import CommentsSection from '../components/common/CommentsSection.tsx';
 import CommentModal from '../components/common/CommentModal.tsx';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { historyService } from '../services/historyService'; // Ajoutez cet import
 
 // Import des interfaces depuis BookCard
 import { BiblioBook, Comment, CommentWithUserData } from '../components/books/BookCard';
@@ -142,6 +143,22 @@ const BookDetailsPage: React.FC = () => {
         fetchBookData();
     }, [id]);
 
+    // Dans BookDetailsPage.tsx
+
+// ... dans le composant BookDetailsPage, après les autres hooks ...
+
+useEffect(() => {
+    // Enregistre la consultation dans l'historique si l'utilisateur est connecté
+    if (isAuthenticated && currentUser && book) {
+        historyService.addHistoryEvent({
+            userId: currentUser.id,
+            type: 'book_view',
+            itemId: book.id,
+            itemTitle: book.name,
+            itemCoverUrl: book.image,
+        });
+    }
+}, [isAuthenticated, currentUser, book]); // Se déclenche une fois que tout est chargé
     // Gestion de la réservation
     const handleReserve = async () => {
         if (!isAuthenticated) {
@@ -329,6 +346,7 @@ const BookDetailsPage: React.FC = () => {
             </div>
         );
     }
+    
 
     return (
         <div className="min-h-screen bg-gray-50">

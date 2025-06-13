@@ -6,9 +6,10 @@ import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProfilePage from './pages/dashboard/Profile';
-import ReservationsPage from './pages/dashboard/ReservationsPage';
-import StatisticsPage from './pages/dashboard/StatisticsPage';
-import CartPage from './pages/dashboard/CartPage';
+import ReservationsPage from './pages/dashboard/EmpruntsPage.tsx';
+import NotificationsPage from './pages/dashboard/NotificationsPage';
+import HistoryPage from './pages/dashboard/ConsultationsPage';
+import ChatPage from './pages/dashboard/ChatPage';
 import BookDetailsPage from './pages/BookDetailsPage';
 import AuthPage from "./pages/AuthPage.tsx";
 import BooksPage from "./pages/BooksPage.tsx";
@@ -59,16 +60,20 @@ const router = createBrowserRouter([
                 element: <ProfilePage />,
             },
             {
-                path: 'statistics',
-                element: <StatisticsPage />,
+                path: 'Chat',
+                element: <ChatPage />,
             },
             {
-                path: 'reservations',
+                path: 'consultations',
+                element: <HistoryPage />,
+            },
+            {
+                path: 'notifications',
+                element: <NotificationsPage />,
+            },
+            {
+                path: 'emprunts',
                 element: <ReservationsPage />,
-            },
-            {
-                path: 'cart',
-                element: <CartPage />,
             },
         ],
     },
