@@ -1,53 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Book, GraduationCap, ArrowRight, Calendar, User, Star, ExternalLink } from 'lucide-react';
-import { collection, getDocs, limit, query, Timestamp } from 'firebase/firestore';
+import { Book, GraduationCap, ArrowRight } from 'lucide-react';
+import { collection, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '../../configs/firebase';
 import { useConfig } from '../../contexts/ConfigContext';
 
-// Types pour les commentaires
-interface Comment {
-    heure: Timestamp;
-    nomUser: string;
-    note: number;
-    texte: string;
-}
-
-// Type pour les livres
-interface BiblioBook {
-    id: string;
-    auteur: string;
-    cathegorie: string;
-    commentaire: Comment[];
-    desc: string;
-    edition: string;
-    etagere: string;
-    exemplaire: number;
-    image: string;
-    initialExemplaire: number;
-}
-
-// Type pour les mémoires
-interface BiblioThesis {
-    id: string;
-    abstract: string;
-    annee: number;
-    commentaire: Comment[];
-    département: string;
-    etagere: string;
-    image: string;
-    keywords: string;
-    matricule: string;
-    name: string;
-    pdfUrl: string;
-    superviseur: string;
-    theme: string;
-}
+import BookCard, { BiblioBook } from '../books/BookCard';
+import ThesisCard from '../thesis/ThesisCard';
+import { BiblioThesis } from '../../types/thesis';
 
 const ResourcesSection: React.FC = () => {
     const { orgSettings } = useConfig();
     const [books, setBooks] = useState<BiblioBook[]>([]);
     const [theses, setTheses] = useState<BiblioThesis[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [favoriteBooks, setFavoriteBooks] = useState<string[]>([]);
+    const [favoriteTheses, setFavoriteTheses] = useState<string[]>([]);
 
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
     const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
@@ -89,198 +56,29 @@ const ResourcesSection: React.FC = () => {
         fetchResources();
     }, []);
 
-    const BookCard: React.FC<{ book: BiblioBook }> = ({ book }) => {
-        const available = book.exemplaire > 0;
-        const totalRating = book.commentaire?.reduce((sum, comment) => sum + (comment.note || 0), 0) || 0;
-        const avgRating = book.commentaire?.length > 0 ? (totalRating / book.commentaire.length).toFixed(1) : '0';
+    const handleThesisView = async (thesisId: string) => {
+        try {
+            console.log('📖 Consultation du mémoire:', thesisId);
+            // Rediriger vers la page de détails ou ouvrir le PDF
+            window.open(`/thesis/${thesisId}`, '_blank');
+        } catch (error) {
+            console.error('Erreur consultation mémoire:', error);
+        }
+    };
 
-        return (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-gray-100 group w-full">
-                {/* Image container avec ratio fixe */}
-                <div className="relative w-full h-72 overflow-hidden bg-gray-100">
-                    <img
-                        src={book.image || '/api/placeholder/320/360'}
-                        alt={book.auteur}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/api/placeholder/320/360';
-                        }}
-                    />
-
-                    {/* Overlay gradient pour améliorer la lisibilité */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                    {/* Status badge - redesigné */}
-                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold shadow-lg backdrop-blur-sm ${
-                        available
-                            ? 'bg-green-500/90 text-white'
-                            : 'bg-red-500/90 text-white'
-                    }`}>
-                        {available ? `${book.exemplaire} dispo` : 'Emprunté'}
-                    </div>
-
-                    {/* Rating badge - repositionné */}
-                    {parseFloat(avgRating) > 0 && (
-                        <div className="absolute top-4 left-4 flex items-center bg-black/70 backdrop-blur-sm rounded-full px-3 py-1 shadow-lg">
-                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                            <span className="text-white text-xs ml-1 font-medium">{avgRating}</span>
-                        </div>
-                    )}
-
-                    {/* Catégorie badge en bas à gauche */}
-                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                        <span className="text-xs font-medium text-gray-700">{book.cathegorie}</span>
-                    </div>
-                </div>
-
-                {/* Contenu de la card */}
-                <div className="p-5">
-                    {/* Titre du livre */}
-                    <h3 className="font-bold text-lg mb-3 line-clamp-2 text-gray-900 leading-tight min-h-[3.5rem]">
-                        {book.auteur}
-                    </h3>
-
-                    {/* Informations secondaires */}
-                    <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Édition</span>
-                            <span className="font-medium text-gray-800">{book.edition}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Étagère</span>
-                            <span className="font-medium text-gray-800">{book.etagere}</span>
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-gray-600 line-clamp-3 mb-5 leading-relaxed min-h-[4rem]">
-                        {book.desc || "Description non disponible pour ce livre."}
-                    </p>
-
-                    {/* Bouton d'action */}
-                    <div className="space-y-3">
-                        <button
-                            className="w-full py-3 rounded-xl text-white cursor-pointer font-semibold text-sm transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
-                            style={{
-                                backgroundColor: available ? primaryColor : '#6b7280',
-                                boxShadow: available ? `0 4px 14px 0 ${primaryColor}40` : '0 4px 14px 0 rgba(107, 114, 128, 0.25)'
-                            }}
-                            disabled={!available}
-                        >
-                            {available ? (
-                                <>
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    Réserver maintenant
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Liste d'attente
-                                </>
-                            )}
-                        </button>
-
-                        <button className="w-full py-2 border cursor-pointer border-gray-200 rounded-xl text-gray-700 font-medium text-sm transition-all duration-300 hover:bg-gray-50 hover:border-gray-300">
-                            Voir les détails
-                        </button>
-                    </div>
-                </div>
-            </div>
+    const handleToggleBookFavorite = (bookId: string) => {
+        setFavoriteBooks(prev =>
+            prev.includes(bookId)
+                ? prev.filter(id => id !== bookId)
+                : [...prev, bookId]
         );
     };
 
-    const ThesisCard: React.FC<{ thesis: BiblioThesis }> = ({ thesis }) => {
-        const hasKeywords = thesis.keywords && thesis.keywords.trim().length > 0;
-        const keywordsArray = hasKeywords ? thesis.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
-
-        return (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl border border-gray-100">
-                <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                            <h3 className="font-bold text-sm mb-2 line-clamp-2 text-gray-800">{thesis.theme}</h3>
-                            <div className="flex items-center text-xs text-gray-600 mb-1">
-                                <User className="w-3 h-3 mr-1" />
-                                {thesis.name} ({thesis.matricule})
-                            </div>
-                            <div className="flex items-center text-xs text-gray-600 mb-1">
-                                <Calendar className="w-3 h-3 mr-1" />
-                                {thesis.annee}
-                            </div>
-                        </div>
-
-                        <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Disponible
-                        </div>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Département:</span>
-                            <span className="font-medium text-gray-700">{thesis.département}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Superviseur:</span>
-                            <span className="font-medium text-gray-700">{thesis.superviseur}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Étagère:</span>
-                            <span className="font-medium text-gray-700">{thesis.etagere}</span>
-                        </div>
-                    </div>
-
-                    {thesis.abstract && thesis.abstract.trim().length > 0 && (
-                        <p className="text-xs text-gray-600 line-clamp-2 mb-3">{thesis.abstract}</p>
-                    )}
-
-                    {keywordsArray.length > 0 && (
-                        <div className="mb-3">
-                            <div className="flex flex-wrap gap-1">
-                                {keywordsArray.slice(0, 3).map((keyword, index) => (
-                                    <span
-                                        key={index}
-                                        className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
-                                    >
-                    {keyword}
-                  </span>
-                                ))}
-                                {keywordsArray.length > 3 && (
-                                    <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
-                    +{keywordsArray.length - 3}
-                  </span>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex gap-2">
-                        <button
-                            className="flex-1 py-2 rounded-lg text-white font-medium text-sm transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-                            style={{ backgroundColor: secondaryColor }}
-                        >
-                            Consulter
-                        </button>
-                        {thesis.pdfUrl && thesis.pdfUrl.trim().length > 0 && (
-                            <button
-                                className="px-3 py-2 rounded-lg border-2 font-medium text-sm transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-                                style={{
-                                    borderColor: primaryColor,
-                                    color: primaryColor
-                                }}
-                                onClick={() => window.open(thesis.pdfUrl, '_blank')}
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+    const handleToggleThesisFavorite = (thesisId: string) => {
+        setFavoriteTheses(prev =>
+            prev.includes(thesisId)
+                ? prev.filter(id => id !== thesisId)
+                : [...prev, thesisId]
         );
     };
 
@@ -411,10 +209,16 @@ const ResourcesSection: React.FC = () => {
 
                     {books.length > 0 ? (
                         <>
-                            {/* Grille principale - avec plus d'espace entre les colonnes */}
+                            {/* Grille principale avec BookCard */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-8">
                                 {books.slice(0, 4).map((book) => (
-                                    <BookCard key={book.id} book={book} />
+                                    <BookCard
+                                        key={book.id}
+                                        book={book}
+                                        viewMode="grid"
+                                        onToggleFavorite={handleToggleBookFavorite}
+                                        isFavorite={favoriteBooks.includes(book.id)}
+                                    />
                                 ))}
                             </div>
 
@@ -422,7 +226,13 @@ const ResourcesSection: React.FC = () => {
                             {books.length > 4 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                                     {books.slice(4, 8).map((book) => (
-                                        <BookCard key={book.id} book={book} />
+                                        <BookCard
+                                            key={book.id}
+                                            book={book}
+                                            viewMode="grid"
+                                            onToggleFavorite={handleToggleBookFavorite}
+                                            isFavorite={favoriteBooks.includes(book.id)}
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -481,16 +291,32 @@ const ResourcesSection: React.FC = () => {
 
                     {theses.length > 0 ? (
                         <>
+                            {/* Grille principale avec ThesisCard */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                                 {theses.slice(0, 4).map((thesis) => (
-                                    <ThesisCard key={thesis.id} thesis={thesis} />
+                                    <ThesisCard
+                                        key={thesis.id}
+                                        thesis={thesis}
+                                        viewMode="grid"
+                                        onView={handleThesisView}
+                                        onToggleFavorite={handleToggleThesisFavorite}
+                                        isFavorite={favoriteTheses.includes(thesis.id)}
+                                    />
                                 ))}
                             </div>
 
+                            {/* Deuxième ligne si plus de 4 mémoires */}
                             {theses.length > 4 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {theses.slice(4, 8).map((thesis) => (
-                                        <ThesisCard key={thesis.id} thesis={thesis} />
+                                        <ThesisCard
+                                            key={thesis.id}
+                                            thesis={thesis}
+                                            viewMode="grid"
+                                            onView={handleThesisView}
+                                            onToggleFavorite={handleToggleThesisFavorite}
+                                            isFavorite={favoriteTheses.includes(thesis.id)}
+                                        />
                                     ))}
                                 </div>
                             )}

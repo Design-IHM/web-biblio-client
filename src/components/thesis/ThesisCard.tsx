@@ -169,18 +169,18 @@ const ThesisCard: React.FC<ThesisCardProps> = ({
             <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${className}`}>
                 <Link to={`/thesis/${thesis.id}`} className="block group">
                     {/* Image */}
-                    <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                    <div className="relative aspect-[3/2] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                         {thesis.image && !imageError ? (
                             <img
                                 src={thesis.image}
                                 alt={thesis.theme || `Mémoire ${thesis.matricule}`}
-                                className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+                                className="w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-110"
                                 onError={handleImageError}
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
                                 <GraduationCap
-                                    size={64}
+                                    size={48}
                                     className="text-gray-300 transition-all duration-300 group-hover:text-gray-400"
                                 />
                             </div>
@@ -346,17 +346,17 @@ const ThesisCard: React.FC<ThesisCardProps> = ({
         <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${className}`}>
             <div className="flex flex-col sm:flex-row">
                 <Link to={`/thesis/${thesis.id}`} className="block group">
-                    <div className="relative w-full sm:w-32 h-48 sm:h-32 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
+                    <div className="relative w-full sm:w-40 h-32 sm:h-28 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
                         {thesis.image && !imageError ? (
                             <img
                                 src={thesis.image}
                                 alt={thesis.theme || `Mémoire ${thesis.matricule}`}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                                 onError={handleImageError}
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                                <GraduationCap size={32} className="text-gray-300" />
+                                <GraduationCap size={24} className="text-gray-300" />
                             </div>
                         )}
                     </div>

@@ -8,14 +8,14 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { authService } from '../../services/auth/authService';
 import {TabEtatEntry, BiblioUser, EtatValue, ReservationEtatValue} from "../../types/auth";
 
-interface Comment {
+export interface Comment {
     heure: Timestamp;
     nomUser: string;
     note: number;
     texte: string;
 }
 
-interface BiblioBook {
+export interface BiblioBook {
     id: string;
     name: string;
     auteur: string;
@@ -180,18 +180,18 @@ const BookCard: React.FC<BookCardProps> = ({
         return (
             <div className={`group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${className}`}>
                 <Link to={`/books/${book.id}`} className="block">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+                    <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
                         {book.image && !imageError ? (
                             <img
                                 src={book.image}
                                 alt={`Couverture de ${book.name}`}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                                 onError={handleImageError}
                                 loading="lazy"
                             />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                <BookOpen className="w-16 h-16 text-gray-400 mb-2" />
+                                <BookOpen className="w-12 h-12 text-gray-400 mb-2" />
                                 <span className="text-xs text-gray-500 text-center px-2">
                                     {book.image ? 'Image non disponible' : 'Pas d\'image'}
                                 </span>
@@ -310,18 +310,18 @@ const BookCard: React.FC<BookCardProps> = ({
     return (
         <div className={`group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md ${className}`}>
             <Link to={`/books/${book.id}`} className="flex">
-                <div className="relative w-24 h-32 flex-shrink-0 overflow-hidden bg-gray-100">
+                <div className="relative w-32 h-52 flex-shrink-0 overflow-hidden bg-gray-100">
                     {book.image && !imageError ? (
                         <img
                             src={book.image}
                             alt={`Couverture de ${book.name}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                             onError={handleImageError}
                             loading="lazy"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                            <BookOpen className="w-8 h-8 text-gray-400" />
+                            <BookOpen className="w-6 h-6 text-gray-400" />
                         </div>
                     )}
                     <div className="absolute bottom-1 left-1">
