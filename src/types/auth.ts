@@ -1,11 +1,9 @@
 import { Timestamp } from 'firebase/firestore';
 
-// Types existants conservés
 export type UserStatus = 'etudiant' | 'enseignant';
 export type UserLevel = 'level1' | 'level2' | 'level3' | 'level4' | 'level5';
 
-// Nouveaux types ajoutés selon vos spécifications
-export type EtatValue = 'ras' | 'emprunt' | 'retard';
+export type EtatValue = 'ras' | 'emprunt' | 'reserv' | 'retard';
 export type ReservationEtatValue = 'annuler' | 'reserver';
 export type MessageRecipientType = 'E' | 'R';
 export type NotificationType = 'reservation_confirmed' | 'reservation';
@@ -123,7 +121,7 @@ export interface UserData {
 export interface BiblioUser {
     id?: string;
     name: string;
-    matricule?: string; // Rendu optionnel car absent de UserData
+    matricule?: string;
     email: string;
     niveau: string;
     departement: string;
@@ -131,14 +129,14 @@ export interface BiblioUser {
     createdAt: Timestamp;
     lastLoginAt: Timestamp;
     level: UserLevel;
-    tabEtat1?: TabEtatEntry;
-    tabEtat2?: TabEtatEntry;
-    tabEtat3?: TabEtatEntry;
-    tabEtat4?: TabEtatEntry;
-    tabEtat5?: TabEtatEntry;
-    etat1: EtatValue;
-    etat2: EtatValue;
-    etat3: EtatValue;
+    tabEtat1?: TabEtatEntry | null;
+    tabEtat2?: TabEtatEntry | null;
+    tabEtat3?: TabEtatEntry | null;
+    tabEtat4?: TabEtatEntry | null;
+    tabEtat5?: TabEtatEntry | null;
+    etat1?: EtatValue;
+    etat2?: EtatValue;
+    etat3?: EtatValue;
     etat4?: EtatValue;
     etat5?: EtatValue;
     emailVerified: boolean;
@@ -151,7 +149,7 @@ export interface BiblioUser {
     inscritArchi: string;
     messages: MessageItem[];
     notifications: NotificationItem[];
-    reservations: ReservationItem[];
+    reservations?: ReservationItem[];
     searchHistory: string[];
     username: string;
 }

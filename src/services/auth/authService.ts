@@ -43,7 +43,6 @@ class AuthService {
             // Récupérer la configuration pour MaximumSimultaneousLoans
             const orgSettings = await configService.getOrgSettings();
             const maxLoans = orgSettings.MaximumSimultaneousLoans || 3;
-            console.log('📊 Paramètres org:', { maxLoans });
 
             // Créer l'utilisateur Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(
@@ -57,14 +56,11 @@ class AuthService {
             // Upload de l'image de profil si fournie (via Cloudinary)
             let profilePictureUrl = '';
             if (data.profilePicture) {
-                // Convertir l'URL en File si nécessaire
-                let fileToUpload: File;
                 if (typeof data.profilePicture === 'string') {
                     profilePictureUrl = data.profilePicture;
                 } else {
-                    fileToUpload = data.profilePicture;
                     const uploadResponse = await cloudinaryService.uploadAvatar(
-                        fileToUpload,
+                        data.profilePicture,
                         firebaseUser.uid
                     );
 
@@ -76,14 +72,23 @@ class AuthService {
                 }
             }
 
-            // Créer les tableaux d'état dynamiquement selon MaximumSimultaneousLoans
+            // États dynamiques pour etat1..etatN et tabEtat1..tabEtatN
             const userStateData = this.createUserStateData(maxLoans);
+
+            const defaultEtatData = {
+                etat1: 'ras' as EtatValue,
+                etat2: 'ras' as EtatValue,
+                etat3: 'ras' as EtatValue,
+                tabEtat1: Array(6).fill('ras') as TabEtatEntry,
+                tabEtat2: Array(6).fill('ras') as TabEtatEntry,
+                tabEtat3: Array(6).fill('ras') as TabEtatEntry
+            };
 
             // S'assurer que niveau et departement ne sont jamais undefined
             const niveau = data.statut === 'etudiant' ? (data.niveau || '') : '';
             const departement = data.departement || '';
 
-            // Créer l'objet utilisateur complet avec les nouveaux champs
+            // Création finale de l'objet utilisateur
             const biblioUser: Omit<BiblioUser, 'id'> = {
                 name: data.name,
                 matricule: data.matricule || '',
@@ -99,9 +104,9 @@ class AuthService {
                 emailVerified: false,
                 profilePicture: profilePictureUrl,
                 imageUri: profilePictureUrl,
-                inscritArchi: '', // Valeur par défaut
+                inscritArchi: '',
 
-                // Nouveaux champs ajoutés
+                // Données utilisateur
                 docRecent: [] as DocRecentItem[],
                 historique: [] as HistoriqueItem[],
                 messages: [] as MessageItem[],
@@ -109,20 +114,20 @@ class AuthService {
                 reservations: [] as ReservationItem[],
                 searchHistory: [] as string[],
 
-                // États dynamiques
+                ...defaultEtatData,
                 ...userStateData
             };
 
             // Sauvegarder dans Firestore
-            await setDoc(doc(db, 'BiblioUser', firebaseUser.uid), biblioUser);
+            await setDoc(doc(db, 'BiblioUser', firebaseUser.email!), biblioUser);
 
-            // Mettre à jour le profil Firebase Auth
+            // Mise à jour du profil Firebase Auth
             await updateProfile(firebaseUser, {
                 displayName: data.name,
                 photoURL: profilePictureUrl || null
             });
 
-            // Envoyer l'email de vérification
+            // Envoi d'email de vérification
             await firebaseSendEmailVerification(firebaseUser);
 
             return {
@@ -160,7 +165,7 @@ class AuthService {
             const firebaseUser = userCredential.user;
 
             // Récupérer les données utilisateur depuis Firestore
-            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.email!));
 
             if (!userDoc.exists()) {
                 console.error('❌ Utilisateur non trouvé dans Firestore');
@@ -170,7 +175,7 @@ class AuthService {
             const biblioUser = userDoc.data() as BiblioUser;
 
             // Mettre à jour la dernière connexion
-            await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), {
+            await updateDoc(doc(db, 'BiblioUser', firebaseUser.email!), {
                 lastLoginAt: Timestamp.now()
             });
 
@@ -237,7 +242,7 @@ class AuthService {
             const firebaseUser = auth.currentUser;
             if (!firebaseUser) return null;
 
-            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.email!));
 
             if (!userDoc.exists()) return null;
 
@@ -363,7 +368,7 @@ class AuthService {
             if (tabEtat) {
                 // Validation optionnelle de TabEtatEntry
                 if (!Array.isArray(tabEtat) || tabEtat.length !== 7) {
-                    throw new Error('TabEtatEntry doit être un tableau de 7 éléments');
+                    throw new Error('TabEtatEntry doit être un tableau de 6 éléments');
                 }
                 updateData[`tabEtat${etatIndex}`] = tabEtat;
             }
@@ -384,8 +389,10 @@ class AuthService {
         const stateData: Record<string, EtatValue | TabEtatEntry> = {};
 
         for (let i = 1; i <= maxLoans; i++) {
-            stateData[`etat${i}`] = 'ras' as EtatValue;
+            stateData[`etat${i}`] = 'ras';
+            stateData[`tabEtat${i}`] = Array(7).fill('ras') as TabEtatEntry;
         }
+
         return stateData;
     }
 

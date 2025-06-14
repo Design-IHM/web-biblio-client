@@ -10,7 +10,6 @@ import {
     ACADEMIC_LEVELS
 } from '../../types/auth';
 
-// Import des composants
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import {
@@ -142,7 +141,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
             newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
         }
 
-        // Validation du matricule (optionnel)
+        // Validation du matricule
         if (formData.matricule && formData.matricule.trim().length < 6) {
             newErrors.matricule = 'Le matricule doit contenir au moins 6 caractères';
         }
