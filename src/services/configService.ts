@@ -13,7 +13,6 @@ class ConfigService {
 
         // Vérifier le cache seulement si on a des données récentes
         if (this.orgSettingsCache && (now - this.lastFetch) < this.cacheExpiry) {
-            console.log('📦 Using cached org settings');
             return this.orgSettingsCache;
         }
 
@@ -25,7 +24,6 @@ class ConfigService {
             const configSnapshot = await getDocs(configCollection);
 
             if (configSnapshot.empty) {
-                console.warn('⚠️ Configuration collection is empty or doesn\'t exist');
                 return this.getDefaultOrgSettings();
             }
 
@@ -34,11 +32,9 @@ class ConfigService {
 
             if (docSnap.exists()) {
                 const data = docSnap.data() as OrgSettings;
-                console.log('✅ Org settings loaded from Firebase:', data);
 
                 // Vérifier que les données essentielles sont présentes
                 if (!data.Name || !data.Theme) {
-                    console.warn('⚠️ Incomplete org settings, using defaults');
                     return this.getDefaultOrgSettings();
                 }
 
@@ -50,7 +46,6 @@ class ConfigService {
 
                 return this.orgSettingsCache;
             } else {
-                console.warn('⚠️ OrgSettings document does not exist');
                 return this.getDefaultOrgSettings();
             }
         } catch (error) {
@@ -67,18 +62,15 @@ class ConfigService {
 
     async getAppSettings(): Promise<AppSettings> {
         try {
-            console.log('🔍 Fetching app settings from Firebase...');
 
             const appSettingsRef = doc(db, 'Configuration', 'AppSettings');
             const docSnap = await getDoc(appSettingsRef);
 
             if (docSnap.exists()) {
                 const data = docSnap.data() as AppSettings;
-                console.log('✅ App settings loaded from Firebase:', data);
                 this.appSettingsCache = data;
                 return this.appSettingsCache;
             } else {
-                console.warn('⚠️ AppSettings document does not exist');
                 return this.getDefaultAppSettings();
             }
         } catch (error) {
@@ -89,7 +81,6 @@ class ConfigService {
 
     // Méthode pour invalider le cache et forcer le rechargement
     invalidateCache(): void {
-        console.log('🗑️ Invalidating cache...');
         this.orgSettingsCache = null;
         this.appSettingsCache = null;
         this.lastFetch = 0;
@@ -104,11 +95,9 @@ class ConfigService {
 
     // Méthode pour tester la connexion Firebase
     async testFirebaseConnection(): Promise<boolean> {
-        try {
-            console.log('🧪 Testing Firebase connection...');
+        try {;
             const testRef = doc(db, 'Configuration', 'test');
             await getDoc(testRef);
-            console.log('✅ Firebase connection successful');
             return true;
         } catch (error) {
             console.error('❌ Firebase connection failed:', error);
@@ -117,7 +106,6 @@ class ConfigService {
     }
 
     private getDefaultOrgSettings(): OrgSettings {
-        console.log('📝 Using default org settings');
         const defaults = {
             Address: "BP 8390, Melen, Yaoundé",
             Contact: {
@@ -164,8 +152,6 @@ class ConfigService {
     // Appliquer le thème au DOM
     private applyThemeToDOM(theme: { Primary: string; Secondary: string }): void {
         try {
-            console.log('🎨 Applying theme to DOM:', theme);
-
             const root = document.documentElement;
 
             // Appliquer les couleurs principales
@@ -185,8 +171,6 @@ class ConfigService {
             if (secondaryRgb) {
                 root.style.setProperty('--secondary-rgb', `${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}`);
             }
-
-            console.log('✅ Theme applied successfully');
         } catch (error) {
             console.error('❌ Error applying theme:', error);
         }
