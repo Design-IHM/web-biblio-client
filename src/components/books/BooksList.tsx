@@ -39,7 +39,6 @@ const BooksList: React.FC<BooksListProps> = ({
                                                  selectedDepartments,
                                                  sortOption,
                                                  viewMode,
-                                                 onBookReserve,
                                                  onToggleFavorite,
                                                  favoriteBooks = [],
                                                  className = ""
@@ -170,14 +169,6 @@ const BooksList: React.FC<BooksListProps> = ({
         loadAllBooks();
     };
 
-    // Gestion de la réservation
-    const handleBookReserve = async (bookId: string) => {
-        if (onBookReserve) {
-            await onBookReserve(bookId);
-            handleRefresh();
-        }
-    };
-
     if (loading) {
         return (
             <div className={`flex items-center justify-center py-12 ${className}`}>
@@ -258,7 +249,6 @@ const BooksList: React.FC<BooksListProps> = ({
                         key={book.id}
                         book={book}
                         viewMode={viewMode}
-                        onReserve={handleBookReserve}
                         onToggleFavorite={onToggleFavorite}
                         isFavorite={favoriteBooks.includes(book.id)}
                     />
@@ -268,18 +258,8 @@ const BooksList: React.FC<BooksListProps> = ({
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="mt-8 flex items-center justify-center">
-                    <div className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <button
-                            onClick={handleNextPage}
-                            disabled={currentPage === totalPages}
-                            className={`p-3 transition-colors ${
-                                currentPage === totalPages
-                                    ? 'text-gray-300 cursor-not-allowed'
-                                    : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                        >
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
+                    <div
+                        className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
                         <button
                             onClick={handlePreviousPage}
@@ -290,7 +270,19 @@ const BooksList: React.FC<BooksListProps> = ({
                                     : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         >
-                            <ChevronLeft className="w-5 h-5" />
+                            <ChevronLeft className="w-5 h-5"/>
+                        </button>
+
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className={`p-3 transition-colors ${
+                                currentPage === totalPages
+                                    ? 'text-gray-300 cursor-not-allowed'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            <ChevronRight className="w-5 h-5"/>
                         </button>
 
                     </div>
@@ -300,7 +292,8 @@ const BooksList: React.FC<BooksListProps> = ({
             {/* Informations sur la pagination */}
             {filteredBooks.length > BOOKS_PER_PAGE && (
                 <div className="mt-4 text-center text-sm text-gray-500">
-                    Affichage de {startIndex + 1} à {Math.min(endIndex, filteredBooks.length)} sur {filteredBooks.length} livre{filteredBooks.length > 1 ? 's' : ''}
+                    Affichage
+                    de {startIndex + 1} à {Math.min(endIndex, filteredBooks.length)} sur {filteredBooks.length} livre{filteredBooks.length > 1 ? 's' : ''}
                 </div>
             )}
         </div>

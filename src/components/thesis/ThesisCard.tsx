@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useConfig } from '../../contexts/ConfigContext';
 import {
     Heart,
-    Eye,
     GraduationCap,
     User,
     Calendar,
-    Package,
     ExternalLink,
-    Star
+    Star,
+    BookOpen
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BiblioThesis } from '../../types/thesis';
+import { doc, writeBatch, Timestamp, arrayUnion } from 'firebase/firestore';
+import { db } from '../../configs/firebase';
+import { BiblioUser, TabEtatEntry, EtatValue, ReservationEtatValue } from '../../types/auth';
+import { authService } from '../../services/auth/authService';
 
 export type ViewMode = 'grid' | 'list';
 
@@ -25,36 +28,115 @@ interface ThesisCardProps {
     className?: string;
 }
 
+// Fonction helper pour vérifier si une clé est valide pour BiblioUser
+const isKeyOfBiblioUser = (key: string, max: number): key is keyof BiblioUser => {
+    const match = key.match(/^etat(\d+)$/);
+    if (!match) return false;
+    const num = parseInt(match[1]);
+    return num >= 1 && num <= max;
+};
+
 const ThesisCard: React.FC<ThesisCardProps> = ({
                                                    thesis,
                                                    viewMode = 'grid',
-                                                   onView,
                                                    onToggleFavorite,
                                                    isFavorite = false,
-                                                   isLoading = false,
                                                    className = ""
                                                }) => {
     const { orgSettings } = useConfig();
     const [imageError, setImageError] = useState(false);
-    const [isViewing, setIsViewing] = useState(false);
+    const [isReserving, setIsReserving] = useState(false);
+    const [currentUser, setCurrentUser] = useState<BiblioUser | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
-    const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
 
-    // Gérer la consultation
-    const handleView = async (e: React.MouseEvent) => {
+    // Vérifier l'authentification au montage et lors des changements
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const user = await authService.getCurrentUser();
+                setCurrentUser(user);
+                setIsAuthenticated(!!user);
+            } catch (error) {
+                console.error('Erreur vérification auth:', error);
+                setCurrentUser(null);
+                setIsAuthenticated(false);
+            }
+        };
+
+        checkAuth();
+    }, []);
+
+    // Gérer la réservation
+    const handleReserve = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!onView) return;
+        if (!isAuthenticated || !currentUser) {
+            alert("Vous devez être connecté pour réserver un mémoire.");
+            return;
+        }
 
-        setIsViewing(true);
+        setIsReserving(true);
+
         try {
-            await onView(thesis.id);
+            const userRef = doc(db, "BiblioUser", currentUser.email!);
+            const batch = writeBatch(db);
+            const max = orgSettings?.MaximumSimultaneousLoans || 5;
+
+            // Trouver le premier slot etat disponible
+            let etatIndex: number | null = null;
+            for (let i = 1; i <= max; i++) {
+                const etatKey = `etat${i}`;
+                if (isKeyOfBiblioUser(etatKey, max) && currentUser[etatKey as keyof BiblioUser] === 'ras') {
+                    etatIndex = i;
+                    break;
+                }
+            }
+
+            if (etatIndex === null) {
+                alert("Vous avez atteint le nombre maximum de réservations.");
+                return;
+            }
+
+            const dateReservation = Timestamp.now();
+            const tabEtatEntry: TabEtatEntry = [
+                thesis.id,
+                thesis.name,
+                thesis.département, // Utiliser le département comme cathegorie
+                thesis.image,
+                "BiblioThesis", // Nom de la collection
+                dateReservation,
+                1
+            ];
+
+            // Mettre à jour l'état de réservation de l'utilisateur
+            batch.update(userRef, {
+                [`etat${etatIndex}`]: 'reserv' as EtatValue,
+                [`tabEtat${etatIndex}`]: tabEtatEntry,
+                reservations: arrayUnion({
+                    cathegorie: thesis.département, // Département au lieu de cathegorie
+                    dateReservation,
+                    etat: 'reserver' as ReservationEtatValue,
+                    exemplaire: 1,
+                    image: thesis.image,
+                    name: thesis.name,
+                    nomBD: "BiblioThesis"
+                })
+            });
+
+            // Pour les mémoires, pas besoin de décrémenter les exemplaires
+            // car ils sont généralement consultables par plusieurs personnes
+
+            await batch.commit();
+            alert("Mémoire réservé avec succès!");
+
         } catch (error) {
-            console.error('Erreur lors de la consultation:', error);
+            console.error('Erreur lors de la réservation:', error);
+            alert("Une erreur est survenue lors de la réservation.");
         } finally {
-            setIsViewing(false);
+            setIsReserving(false);
         }
     };
 
@@ -82,113 +164,111 @@ const ThesisCard: React.FC<ThesisCardProps> = ({
         ? thesis.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0).slice(0, 3)
         : [];
 
-    // Vue grille (par défaut)
     if (viewMode === 'grid') {
         return (
-            <div className={`group bg-white cursor-pointer rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${className}`}>
-                <Link to={`/thesis/${thesis.id}`} className="block">
-                    {/* Image de couverture */}
-                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+            <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${className}`}>
+                <Link to={`/thesis/${thesis.id}`} className="block group">
+                    {/* Image */}
+                    <div className="relative aspect-[3/2] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                         {thesis.image && !imageError ? (
                             <img
                                 src={thesis.image}
-                                alt={`Mémoire de ${thesis.name}`}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                alt={thesis.theme || `Mémoire ${thesis.matricule}`}
+                                className="w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-110"
                                 onError={handleImageError}
-                                loading="lazy"
                             />
                         ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                <GraduationCap className="w-16 h-16 text-gray-400 mb-2" />
-                                <span className="text-xs text-gray-500 text-center px-2">
-                                    {thesis.image ? 'Image non disponible' : 'Pas d\'image'}
-                                </span>
+                            <div className="w-full h-full flex items-center justify-center">
+                                <GraduationCap
+                                    size={48}
+                                    className="text-gray-300 transition-all duration-300 group-hover:text-gray-400"
+                                />
                             </div>
                         )}
 
-                        {/* Badge d'année */}
-                        <div className="absolute top-2 left-2 z-20">
-                            <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 shadow-md">
-                                <Calendar className="w-3 h-3 mr-1 inline" />
-                                {thesis.annee}
+                        {/* Overlay avec actions */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <div className="absolute bottom-4 left-4 right-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        {/* Badge département */}
+                                        <span
+                                            className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                                            style={{ backgroundColor: primaryColor }}
+                                        >
+                                            {thesis.département}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {/* Bouton favoris */}
+                                        <button
+                                            onClick={handleToggleFavorite}
+                                            className={`p-2 rounded-full transition-all duration-200 ${
+                                                isFavorite
+                                                    ? 'bg-red-500 text-white'
+                                                    : 'bg-white/20 backdrop-blur-sm text-white hover:bg-red-500'
+                                            }`}
+                                        >
+                                            <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+                                        </button>
+
+                                        {/* Lien PDF si disponible */}
+                                        {thesis.pdfUrl && (
+                                            <a
+                                                href={thesis.pdfUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-blue-500 transition-all duration-200"
+                                            >
+                                                <ExternalLink size={16} />
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Bouton favori */}
-                        <button
-                            onClick={handleToggleFavorite}
-                            className={`absolute cursor-pointer top-2 right-2 p-2 rounded-full transition-all duration-200 z-20 shadow-md ${
-                                isFavorite
-                                    ? 'bg-red-100 text-red-600 border border-red-200'
-                                    : 'bg-white bg-opacity-90 text-gray-600 hover:bg-white hover:bg-opacity-100 border border-gray-200'
-                            }`}
-                            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                        >
-                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                        </button>
-
-                        {/* Note moyenne */}
-                        {averageRating > 0 && (
-                            <div className="absolute bottom-2 left-2 z-10">
-                                <div className="px-2 py-1 rounded-full bg-black bg-opacity-60 text-white text-xs font-medium flex items-center">
-                                    <Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />
-                                    {averageRating.toFixed(1)}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Badge d'étagère */}
-                        {thesis.etagere && (
-                            <div className="absolute bottom-2 right-2 z-10">
-                                <div className="px-2 py-1 rounded-full bg-black bg-opacity-60 text-white text-xs font-medium">
-                                    Ét: {thesis.etagere}
-                                </div>
-                            </div>
-                        )}
                     </div>
+                </Link>
 
-                    {/* Contenu */}
-                    <div className="p-4">
-                        {/* Titre du mémoire (theme ou matricule) */}
-                        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-gray-700 transition-colors">
-                            {thesis.theme || `Mémoire ${thesis.matricule}`}
+                {/* Contenu */}
+                <div className="p-6">
+                    <Link to={`/thesis/${thesis.id}`} className="block group">
+                        {/* Titre */}
+                        <h3 className="font-bold text-lg text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
+                            {thesis.theme || thesis.name}
                         </h3>
 
-                        {/* Auteur */}
-                        <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <User className="w-3 h-3 mr-1 flex-shrink-0" />
-                            <span className="line-clamp-1">{thesis.name}</span>
-                        </div>
-
-                        {/* Matricule */}
-                        <div className="flex items-center text-xs text-gray-500 mb-3">
-                            <span className="font-medium">Matricule: {thesis.matricule}</span>
-                        </div>
-
-                        {/* Département */}
-                        <div className="mb-3">
-                            <span
-                                className="inline-block px-2 py-1 rounded-full text-xs font-medium"
-                                style={{
-                                    backgroundColor: `${primaryColor}10`,
-                                    color: primaryColor
-                                }}
-                            >
-                                {thesis.département}
-                            </span>
-                        </div>
-
-                        {/* Superviseur si disponible */}
-                        {thesis.superviseur && (
-                            <div className="flex items-center text-xs text-gray-500 mb-3">
-                                <User className="w-3 h-3 mr-1" />
-                                <span className="truncate">Sup: {thesis.superviseur}</span>
+                        {/* Informations de base */}
+                        <div className="space-y-2 mb-4">
+                            <div className="flex items-center text-sm text-gray-600">
+                                <User size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                                <span className="truncate">{thesis.name}</span>
                             </div>
+
+                            <div className="flex items-center text-sm text-gray-600">
+                                <Calendar size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                                <span>{thesis.annee}</span>
+                            </div>
+
+                            {thesis.superviseur && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                    <GraduationCap size={14} className="mr-2 text-gray-400 flex-shrink-0" />
+                                    <span className="truncate">Sup: {thesis.superviseur}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Abstract */}
+                        {thesis.abstract && (
+                            <p className="text-sm text-gray-600 line-clamp-3 mb-4 leading-relaxed">
+                                {thesis.abstract}
+                            </p>
                         )}
 
                         {/* Mots-clés */}
                         {keywords.length > 0 && (
-                            <div className="mb-3">
+                            <div className="mb-4">
                                 <div className="flex flex-wrap gap-1">
                                     {keywords.map((keyword, index) => (
                                         <span
@@ -202,235 +282,232 @@ const ThesisCard: React.FC<ThesisCardProps> = ({
                             </div>
                         )}
 
-                        {/* Étagère */}
-                        {thesis.etagere && (
-                            <div className="flex items-center text-xs text-gray-500 mb-3">
-                                <Package className="w-3 h-3 mr-1" />
-                                <span>Étagère: {thesis.etagere}</span>
+                        {/* Note moyenne */}
+                        {averageRating > 0 && (
+                            <div className="flex items-center mb-4">
+                                <div className="flex items-center">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            size={14}
+                                            className={`${
+                                                star <= Math.round(averageRating)
+                                                    ? 'text-yellow-400 fill-current'
+                                                    : 'text-gray-300'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-sm text-gray-600 ml-2">
+                                    ({thesis.commentaire.length})
+                                </span>
                             </div>
                         )}
+                    </Link>
 
-                        {/* Nombre de commentaires */}
-                        {thesis.commentaire && thesis.commentaire.length > 0 && (
-                            <div className="flex items-center text-xs text-gray-500">
-                                <span>{thesis.commentaire.length} commentaire{thesis.commentaire.length > 1 ? 's' : ''}</span>
-                            </div>
-                        )}
-                    </div>
-                </Link>
-
-                {/* Actions */}
-                <div className="p-4 pt-0">
-                    <div className="flex gap-2">
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-4 border-t border-gray-100">
                         <button
-                            onClick={handleView}
-                            disabled={isViewing || isLoading}
-                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center text-white hover:shadow-lg transform hover:scale-[1.02]`}
-                            style={{ backgroundColor: primaryColor }}
+                            onClick={handleReserve}
+                            disabled={isReserving || !isAuthenticated}
+                            className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${
+                                isAuthenticated
+                                    ? `border-2 hover:shadow-lg transform hover:scale-[1.02] ${isReserving ? 'opacity-75 cursor-not-allowed' : ''}`
+                                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            }`}
+                            style={{
+                                borderColor: isAuthenticated ? primaryColor : undefined,
+                                color: isAuthenticated ? primaryColor : undefined
+                            }}
                         >
-                            {isViewing ? (
+                            {isReserving ? (
+                                <div className="flex items-center">
+                                    <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin mr-2"
+                                         style={{ borderColor: primaryColor }}></div>
+                                    Réservation...
+                                </div>
+                            ) : isAuthenticated ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                    Reservation...
+                                    <BookOpen size={16} className="mr-2" />
+                                    Réserver
                                 </>
                             ) : (
-                                <>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Reserver
-                                </>
+                                'Connexion requise'
                             )}
                         </button>
-
-                        {thesis.pdfUrl && (
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    window.open(thesis.pdfUrl, '_blank');
-                                }}
-                                className="px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02]"
-                                style={{
-                                    borderColor: secondaryColor,
-                                    color: secondaryColor
-                                }}
-                                title="Ouvrir le PDF"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
         );
     }
 
-    // Vue liste
+    // Mode liste
     return (
-        <div className={`group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md ${className}`}>
-            <Link to={`/thesis/${thesis.id}`} className="flex">
-                {/* Image de couverture */}
-                <div className="relative w-24 h-32 flex-shrink-0 overflow-hidden bg-gray-100">
-                    {thesis.image && !imageError ? (
-                        <img
-                            src={thesis.image}
-                            alt={`Mémoire de ${thesis.name}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            onError={handleImageError}
-                            loading="lazy"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                            <GraduationCap className="w-8 h-8 text-gray-400" />
-                        </div>
-                    )}
-
-                    {/* Badge d'année */}
-                    <div className="absolute bottom-1 left-1">
-                        <div className="px-1 py-0.5 rounded text-xs bg-blue-500 text-white font-medium">
-                            {thesis.annee}
-                        </div>
-                    </div>
-
-                    {/* Note moyenne */}
-                    {averageRating > 0 && (
-                        <div className="absolute top-1 right-1">
-                            <div className="px-1 py-0.5 rounded text-xs bg-black bg-opacity-60 text-white font-medium flex items-center">
-                                <Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />
-                                {averageRating.toFixed(1)}
+        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${className}`}>
+            <div className="flex flex-col sm:flex-row">
+                <Link to={`/thesis/${thesis.id}`} className="block group">
+                    <div className="relative w-full sm:w-40 h-32 sm:h-28 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
+                        {thesis.image && !imageError ? (
+                            <img
+                                src={thesis.image}
+                                alt={thesis.theme || `Mémoire ${thesis.matricule}`}
+                                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                                onError={handleImageError}
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <GraduationCap size={24} className="text-gray-300" />
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                </Link>
 
                 {/* Contenu */}
                 <div className="flex-1 p-4 min-w-0">
                     <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0 mr-4">
-                            {/* Titre */}
-                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1 group-hover:text-gray-700 transition-colors">
-                                {thesis.theme || `Mémoire ${thesis.matricule}`}
-                            </h3>
+                            <Link to={`/thesis/${thesis.id}`} className="block group">
+                                {/* Titre */}
+                                <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                    {thesis.theme || thesis.name}
+                                </h3>
 
-                            {/* Auteur et matricule */}
-                            <div className="flex items-center text-sm text-gray-600 mb-2">
-                                <User className="w-3 h-3 mr-1 flex-shrink-0" />
-                                <span className="truncate">{thesis.name} ({thesis.matricule})</span>
-                            </div>
+                                {/* Informations de base */}
+                                <div className="space-y-1 mb-3">
+                                    <div className="flex items-center text-sm text-gray-600">
+                                        <User size={14} className="mr-2 text-gray-400" />
+                                        <span>{thesis.name} ({thesis.matricule})</span>
+                                    </div>
 
-                            {/* Informations secondaires */}
-                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                                <div className="flex items-center">
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    <span>{thesis.annee}</span>
+                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                        <div className="flex items-center">
+                                            <Calendar size={14} className="mr-1 text-gray-400" />
+                                            <span>{thesis.annee}</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span
+                                                className="px-2 py-1 rounded-full text-xs font-medium"
+                                                style={{
+                                                    backgroundColor: `${primaryColor}15`,
+                                                    color: primaryColor
+                                                }}
+                                            >
+                                                {thesis.département}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {thesis.superviseur && (
+                                        <div className="flex items-center text-sm text-gray-600">
+                                            <GraduationCap size={14} className="mr-2 text-gray-400" />
+                                            <span className="truncate">Superviseur: {thesis.superviseur}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                {thesis.superviseur && (
-                                    <div className="flex items-center">
-                                        <User className="w-3 h-3 mr-1" />
-                                        <span className="truncate">Sup: {thesis.superviseur}</span>
+
+                                {/* Abstract */}
+                                {thesis.abstract && (
+                                    <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">
+                                        {thesis.abstract}
+                                    </p>
+                                )}
+
+                                {/* Mots-clés */}
+                                {keywords.length > 0 && (
+                                    <div className="mb-3">
+                                        <div className="flex flex-wrap gap-1">
+                                            {keywords.map((keyword, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
+                                                >
+                                                    {keyword}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
-                                {thesis.etagere && (
+
+                                {/* Note et commentaires */}
+                                {averageRating > 0 && (
                                     <div className="flex items-center">
-                                        <Package className="w-3 h-3 mr-1" />
-                                        <span>Ét: {thesis.etagere}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Abstract */}
-                            {thesis.abstract && (
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">
-                                    {thesis.abstract}
-                                </p>
-                            )}
-
-                            {/* Département et mots-clés */}
-                            <div className="flex items-center gap-3 mb-2">
-                                <span
-                                    className="inline-block px-2 py-1 rounded-full text-xs font-medium"
-                                    style={{
-                                        backgroundColor: `${primaryColor}10`,
-                                        color: primaryColor
-                                    }}
-                                >
-                                    {thesis.département}
-                                </span>
-
-                                {thesis.commentaire && thesis.commentaire.length > 0 && (
-                                    <span className="text-xs text-gray-500 flex items-center">
-                                        {thesis.commentaire.length} avis
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Mots-clés */}
-                            {keywords.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                    {keywords.map((keyword, index) => (
-                                        <span
-                                            key={index}
-                                            className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
-                                        >
-                                            {keyword}
+                                        <div className="flex items-center">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Star
+                                                    key={star}
+                                                    size={14}
+                                                    className={`${
+                                                        star <= Math.round(averageRating)
+                                                            ? 'text-yellow-400 fill-current'
+                                                            : 'text-gray-300'
+                                                    }`}
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="text-sm text-gray-600 ml-2">
+                                            ({thesis.commentaire.length})
                                         </span>
-                                    ))}
-                                </div>
-                            )}
+                                    </div>
+                                )}
+                            </Link>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                                onClick={handleToggleFavorite}
-                                className={`p-2 rounded-full cursor-pointer transition-all duration-200 ${
-                                    isFavorite
-                                        ? 'bg-red-100 text-red-600'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                            >
-                                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                            </button>
-
-                            <button
-                                onClick={handleView}
-                                disabled={isViewing || isLoading}
-                                className={`py-2 px-4 rounded-lg cursor-pointer font-medium transition-all duration-200 flex items-center text-white hover:shadow-lg`}
-                                style={{ backgroundColor: primaryColor }}
-                            >
-                                {isViewing ? (
-                                    <>
-                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                        <span className="hidden sm:inline">Reservation...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="w-4 h-4 mr-2" />
-                                        <span className="hidden sm:inline">Reserver</span>
-                                    </>
-                                )}
-                            </button>
-
-                            {thesis.pdfUrl && (
+                        <div className="flex flex-col items-end space-y-3">
+                            <div className="flex items-center space-x-2">
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        window.open(thesis.pdfUrl, '_blank');
-                                    }}
-                                    className="px-3 py-2 cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-lg"
-                                    style={{
-                                        borderColor: secondaryColor,
-                                        color: secondaryColor
-                                    }}
-                                    title="Ouvrir le PDF"
+                                    onClick={handleToggleFavorite}
+                                    className={`p-2 rounded-full transition-all duration-200 ${
+                                        isFavorite ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-red-500 hover:text-white'
+                                    }`}
                                 >
-                                    <ExternalLink className="w-4 h-4" />
+                                    <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
                                 </button>
-                            )}
+                                {thesis.pdfUrl && (
+                                    <a
+                                        href={thesis.pdfUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-blue-500 hover:text-white transition-all duration-200"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </a>
+                                )}
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={handleReserve}
+                                    disabled={isReserving || !isAuthenticated}
+                                    className={`py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                                        isAuthenticated
+                                            ? `border-2 hover:shadow-lg ${isReserving ? 'opacity-75 cursor-not-allowed' : ''}`
+                                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                    style={{
+                                        borderColor: isAuthenticated ? primaryColor : undefined,
+                                        color: isAuthenticated ? primaryColor : undefined
+                                    }}
+                                >
+                                    {isReserving ? (
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin mr-2"
+                                                 style={{ borderColor: primaryColor }}></div>
+                                            Réservation...
+                                        </div>
+                                    ) : isAuthenticated ? (
+                                        <>
+                                            <BookOpen size={16} className="mr-2 inline" />
+                                            Réserver
+                                        </>
+                                    ) : (
+                                        'Connexion requise'
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </Link>
+            </div>
         </div>
     );
 };

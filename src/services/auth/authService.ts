@@ -19,7 +19,19 @@ import {
 import { auth, db } from '../../configs/firebase';
 import { configService } from '../configService';
 import { cloudinaryService } from '../cloudinaryService';
-import {BiblioUser, RegisterFormData, LoginFormData, AuthResponse, EtatValue} from '../../types/auth';
+import {
+    BiblioUser,
+    RegisterFormData,
+    LoginFormData,
+    AuthResponse,
+    EtatValue,
+    TabEtatEntry,
+    DocRecentItem,
+    HistoriqueItem,
+    MessageItem,
+    NotificationItem,
+    ReservationItem
+} from '../../types/auth';
 
 class AuthService {
 
@@ -28,11 +40,9 @@ class AuthService {
      */
     async signUp(data: RegisterFormData): Promise<AuthResponse> {
         try {
-
             // Récupérer la configuration pour MaximumSimultaneousLoans
             const orgSettings = await configService.getOrgSettings();
             const maxLoans = orgSettings.MaximumSimultaneousLoans || 3;
-            console.log('📊 Paramètres org:', { maxLoans });
 
             // Créer l'utilisateur Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(
@@ -46,96 +56,89 @@ class AuthService {
             // Upload de l'image de profil si fournie (via Cloudinary)
             let profilePictureUrl = '';
             if (data.profilePicture) {
-                console.log('📸 Upload de l\'avatar en cours...');
-
-                // Convertir l'URL en File si nécessaire
-                let fileToUpload: File;
                 if (typeof data.profilePicture === 'string') {
-                    // Si c'est déjà une URL Cloudinary, on la garde
                     profilePictureUrl = data.profilePicture;
                 } else {
-                    // Si c'est un File, on l'upload
-                    fileToUpload = data.profilePicture;
                     const uploadResponse = await cloudinaryService.uploadAvatar(
-                        fileToUpload,
+                        data.profilePicture,
                         firebaseUser.uid
                     );
 
                     if (uploadResponse.success && uploadResponse.url) {
                         profilePictureUrl = uploadResponse.url;
-                        console.log('✅ Avatar uploadé:', profilePictureUrl);
                     } else {
                         console.warn('⚠️ Échec upload avatar:', uploadResponse.error);
                     }
                 }
             }
 
-            // Créer les tableaux d'état dynamiquement selon MaximumSimultaneousLoans
+            // États dynamiques pour etat1..etatN et tabEtat1..tabEtatN
             const userStateData = this.createUserStateData(maxLoans);
-            console.log('📋 États utilisateur créés:', userStateData);
 
-            // CORRECTION: S'assurer que niveau et departement ne sont jamais undefined
-            const niveau = data.statut === 'etudiant' ? (data.niveau || '') : '';
-            const departement = data.statut === 'etudiant' ? (data.departement || '') : '';
-
-            // Créer le document utilisateur dans Firestore
-            const biblioUser: BiblioUser = {
-                id: firebaseUser.uid,
-                name: data.name,
-                matricule: data.matricule,
-                email: data.email,
-                niveau: niveau,
-                departement: departement,
-                tel: data.tel,
-                createdAt: Timestamp.now(),
-                lastLoginAt: Timestamp.now(),
-                level: 'level1',
-                ...userStateData,
-                emailVerified: false,
-                profilePicture: profilePictureUrl,
-                statut: data.statut
+            const defaultEtatData = {
+                etat1: 'ras' as EtatValue,
+                etat2: 'ras' as EtatValue,
+                etat3: 'ras' as EtatValue,
+                tabEtat1: Array(6).fill('ras') as TabEtatEntry,
+                tabEtat2: Array(6).fill('ras') as TabEtatEntry,
+                tabEtat3: Array(6).fill('ras') as TabEtatEntry
             };
 
-            console.log('👤 Données utilisateur finales à sauvegarder:', {
-                id: biblioUser.id,
-                email: biblioUser.email,
-                statut: biblioUser.statut,
-                niveau: biblioUser.niveau,
-                departement: biblioUser.departement,
-                hasProfilePicture: !!biblioUser.profilePicture
-            });
+            // S'assurer que niveau et departement ne sont jamais undefined
+            const niveau = data.statut === 'etudiant' ? (data.niveau || '') : '';
+            const departement = data.departement || '';
+
+            // Création finale de l'objet utilisateur
+            const biblioUser: Omit<BiblioUser, 'id'> = {
+                name: data.name,
+                matricule: data.matricule || '',
+                email: data.email,
+                username: data.username || data.name.toLowerCase().replace(/\s+/g, ''),
+                niveau,
+                departement,
+                tel: data.tel,
+                statut: data.statut,
+                level: 'level1',
+                createdAt: Timestamp.now(),
+                lastLoginAt: Timestamp.now(),
+                emailVerified: false,
+                profilePicture: profilePictureUrl,
+                imageUri: profilePictureUrl,
+                inscritArchi: '',
+
+                // Données utilisateur
+                docRecent: [] as DocRecentItem[],
+                historique: [] as HistoriqueItem[],
+                messages: [] as MessageItem[],
+                notifications: [] as NotificationItem[],
+                reservations: [] as ReservationItem[],
+                searchHistory: [] as string[],
+
+                ...defaultEtatData,
+                ...userStateData
+            };
 
             // Sauvegarder dans Firestore
-            await setDoc(doc(db, 'BiblioUser', firebaseUser.uid), biblioUser);
-            console.log('✅ Utilisateur sauvegardé dans Firestore');
+            await setDoc(doc(db, 'BiblioUser', firebaseUser.email!), biblioUser);
 
-            // Vérification de la sauvegarde
-            const savedDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
-            if (savedDoc.exists()) {
-                console.log('✅ Vérification: Document bien sauvegardé:', savedDoc.data());
-            } else {
-                console.error('❌ Vérification: Document non trouvé après sauvegarde');
-            }
-
-            // Mettre à jour le profil Firebase Auth
+            // Mise à jour du profil Firebase Auth
             await updateProfile(firebaseUser, {
                 displayName: data.name,
-                photoURL: profilePictureUrl
+                photoURL: profilePictureUrl || null
             });
 
-            // Envoyer l'email de vérification
+            // Envoi d'email de vérification
             await firebaseSendEmailVerification(firebaseUser);
 
             return {
                 success: true,
                 message: 'Inscription réussie ! Vérifiez votre email pour activer votre compte.',
-                user: biblioUser
+                user: { ...biblioUser, id: firebaseUser.uid }
             };
 
         } catch (error: unknown) {
             console.error('❌ Erreur inscription:', error);
 
-            // Log détaillé de l'erreur
             if (error instanceof Error) {
                 console.error('Message:', error.message);
                 console.error('Stack:', error.stack);
@@ -153,7 +156,6 @@ class AuthService {
      */
     async signIn(data: LoginFormData): Promise<AuthResponse> {
         try {
-
             const userCredential = await signInWithEmailAndPassword(
                 auth,
                 data.email,
@@ -163,7 +165,7 @@ class AuthService {
             const firebaseUser = userCredential.user;
 
             // Récupérer les données utilisateur depuis Firestore
-            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.email!));
 
             if (!userDoc.exists()) {
                 console.error('❌ Utilisateur non trouvé dans Firestore');
@@ -171,15 +173,9 @@ class AuthService {
             }
 
             const biblioUser = userDoc.data() as BiblioUser;
-            console.log('✅ Données utilisateur récupérées:', {
-                email: biblioUser.email,
-                statut: biblioUser.statut,
-                niveau: biblioUser.niveau,
-                departement: biblioUser.departement
-            });
 
             // Mettre à jour la dernière connexion
-            await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), {
+            await updateDoc(doc(db, 'BiblioUser', firebaseUser.email!), {
                 lastLoginAt: Timestamp.now()
             });
 
@@ -246,17 +242,11 @@ class AuthService {
             const firebaseUser = auth.currentUser;
             if (!firebaseUser) return null;
 
-            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.email!));
 
             if (!userDoc.exists()) return null;
 
             const userData = userDoc.data() as BiblioUser;
-            console.log('📤 Données utilisateur récupérées:', {
-                email: userData.email,
-                statut: userData.statut,
-                niveau: userData.niveau,
-                departement: userData.departement
-            });
 
             return { ...userData, id: firebaseUser.uid };
         } catch (error) {
@@ -291,8 +281,6 @@ class AuthService {
             if (Object.keys(authUpdateData).length > 0) {
                 await updateProfile(firebaseUser, authUpdateData);
             }
-
-            console.log('✅ Profil utilisateur mis à jour');
         } catch (error) {
             console.error('❌ Erreur mise à jour profil:', error);
             throw error;
@@ -300,17 +288,111 @@ class AuthService {
     }
 
     /**
+     * Mise à jour de l'historique des documents
+     */
+    async updateDocHistory(userId: string, docItem: HistoriqueItem): Promise<void> {
+        try {
+            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            if (!userDoc.exists()) return;
+
+            const userData = userDoc.data() as BiblioUser;
+            const updatedHistory = [docItem, ...userData.historique].slice(0, 50);
+
+            await updateDoc(doc(db, 'BiblioUser', userId), {
+                historique: updatedHistory
+            });
+        } catch (error) {
+            console.error('❌ Erreur mise à jour historique:', error);
+        }
+    }
+
+    /**
+     * Ajouter un document récent
+     */
+    async addRecentDoc(userId: string, docItem: DocRecentItem): Promise<void> {
+        try {
+            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            if (!userDoc.exists()) return;
+
+            const userData = userDoc.data() as BiblioUser;
+            const updatedRecent = [docItem, ...userData.docRecent].slice(0, 20);
+
+            await updateDoc(doc(db, 'BiblioUser', userId), {
+                docRecent: updatedRecent
+            });
+        } catch (error) {
+            console.error('❌ Erreur ajout document récent:', error);
+        }
+    }
+
+    /**
+     * Ajouter une notification
+     */
+    async addNotification(userId: string, notification: NotificationItem): Promise<void> {
+        try {
+            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            if (!userDoc.exists()) return;
+
+            const userData = userDoc.data() as BiblioUser;
+            const updatedNotifications = [notification, ...userData.notifications];
+
+            await updateDoc(doc(db, 'BiblioUser', userId), {
+                notifications: updatedNotifications
+            });
+        } catch (error) {
+            console.error('❌ Erreur ajout notification:', error);
+        }
+    }
+
+    /**
+     * Mettre à jour l'état d'un emprunt
+     */
+    async updateEtatEmprunt(userId: string, etatIndex: number, nouvelEtat: EtatValue, tabEtat?: TabEtatEntry): Promise<void> {
+        try {
+            // Validation de l'index
+            if (etatIndex < 1 || etatIndex > 5) {
+                throw new Error(`Index d'emprunt invalide: ${etatIndex}. Doit être entre 1 et 5.`);
+            }
+
+            // Validation de l'état
+            const validEtats: EtatValue[] = ['ras', 'emprunt', 'retard'];
+            if (!validEtats.includes(nouvelEtat)) {
+                throw new Error(`État invalide: ${nouvelEtat}. Doit être: ${validEtats.join(', ')}`);
+            }
+
+            // Construction typée des données de mise à jour
+            const updateData: Record<string, EtatValue | TabEtatEntry> = {
+                [`etat${etatIndex}`]: nouvelEtat
+            };
+
+            if (tabEtat) {
+                // Validation optionnelle de TabEtatEntry
+                if (!Array.isArray(tabEtat) || tabEtat.length !== 7) {
+                    throw new Error('TabEtatEntry doit être un tableau de 6 éléments');
+                }
+                updateData[`tabEtat${etatIndex}`] = tabEtat;
+            }
+
+            await updateDoc(doc(db, 'BiblioUser', userId), updateData);
+            console.log(`✅ État emprunt ${etatIndex} mis à jour: ${nouvelEtat}`);
+
+        } catch (error) {
+            console.error('❌ Erreur mise à jour état emprunt:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Création des données d'état utilisateur dynamiques
      */
-    private createUserStateData(maxLoans: number): Record<string, string | string[]> {
-        const stateData: Record<string, EtatValue | string[]> = {};
+    private createUserStateData(maxLoans: number): Record<string, EtatValue | TabEtatEntry> {
+        const stateData: Record<string, EtatValue | TabEtatEntry> = {};
 
         for (let i = 1; i <= maxLoans; i++) {
-            stateData[`tabEtat${i}`] = [];
-            stateData[`etat${i}`] = 'ras' as EtatValue;
+            stateData[`etat${i}`] = 'ras';
+            stateData[`tabEtat${i}`] = Array(7).fill('ras') as TabEtatEntry;
         }
 
-        console.log('📊 États créés pour', maxLoans, 'emprunts max:', stateData);
         return stateData;
     }
 

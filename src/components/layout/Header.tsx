@@ -1,23 +1,12 @@
-// src/components/layout/Header.tsx
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../../configs/firebase';
 import { useConfig } from '../../contexts/ConfigContext';
 import { authService } from '../../services/auth/authService';
-import { BiblioUser } from '../../types/auth';
-
-import {
-    Search,
-    ShoppingBag,
-    User,
-    Menu,
-    X,
-    LogOut,
-    Settings,
-    BookOpen,
-    Bell
-} from 'lucide-react';
+import {BiblioUser} from '../../types/auth';
+import { BookOpen, ShoppingBag, User, Menu, X, LogOut, Settings, Bell, MessageCircle, History, Heart } from 'lucide-react';
+import CartDropdown from "./CartDropdown.tsx";
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
@@ -25,17 +14,34 @@ const Header: React.FC = () => {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const [reservationCount, setReservationCount] = useState(3);
     const [currentUser, setCurrentUser] = useState<BiblioUser | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showCartDropdown, setShowCartDropdown] = useState(false);
 
-    // Configuration depuis Firebase
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
-    const secondaryColor = orgSettings?.Theme?.Secondary || '#1b263b';
     const organizationName = orgSettings?.Name || 'BiblioENSPY';
 
-    // Effet pour détecter le défilement
+    const reservationCount = currentUser?.reservations?.filter(r => r.etat === 'reserver')?.length || 0;
+    const unreadNotifications = currentUser?.notifications?.filter(n => !n.read)?.length || 0;
+    const unreadMessages = currentUser?.messages?.filter(m => !m.lu && !m.lue)?.length || 0;
+    // const totalEtat: number = orgSettings?.MaximumSimultaneousLoans || 5;
+
+/*    const extractTabEtatReserved = (user: BiblioUser, max: number = totalEtat): TabEtatEntry[] => {
+        const reserved: TabEtatEntry[] = [];
+
+        for (let i = 1; i <= max; i++) {
+            const etatKey = `etat${i}` as keyof BiblioUser;
+            const tabEtatKey = `tabEtat${i}` as keyof BiblioUser;
+
+            if (user[etatKey] === 'reserv' && Array.isArray(user[tabEtatKey])) {
+                reserved.push(user[tabEtatKey] as TabEtatEntry);
+            }
+        }
+
+        return reserved;
+    };*/
+
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 10);
@@ -45,7 +51,6 @@ const Header: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Effet pour surveiller l'état d'authentification
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setFirebaseUser(user);
@@ -55,6 +60,7 @@ const Header: React.FC = () => {
                     setCurrentUser(biblioUser);
                 } catch (error) {
                     console.error('Erreur récupération utilisateur:', error);
+                    setCurrentUser(null);
                 }
             } else {
                 setCurrentUser(null);
@@ -64,39 +70,194 @@ const Header: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    // Gestion de la déconnexion
-    const handleLogout = async () => {
+    const handleSignOut = async () => {
         try {
             await authService.signOut();
             setCurrentUser(null);
             setFirebaseUser(null);
             setShowUserMenu(false);
-            navigate('/', { replace: true });
+            navigate('/');
         } catch (error) {
             console.error('Erreur déconnexion:', error);
         }
     };
 
-    // Fermer le menu utilisateur quand on clique ailleurs
-    useEffect(() => {
-        const handleClickOutside = () => {
-            setShowUserMenu(false);
-        };
+    const UserMenu = () => (
+        <div className="relative">
+            <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+                <div className="relative">
+                    <img
+                        src={currentUser?.profilePicture || currentUser?.imageUri || '/default-avatar.png'}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover border-2"
+                        style={{ borderColor: primaryColor }}
+                    />
+                    {unreadNotifications > 0 && (
+                        <span
+                            className="absolute -top-1 -right-1 w-5 h-5 text-xs text-white rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                        </span>
+                    )}
+                </div>
+                <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
+                    <p className="text-xs text-gray-500 capitalize">{currentUser?.statut}</p>
+                </div>
+            </button>
 
-        if (showUserMenu) {
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
-    }, [showUserMenu]);
+            {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                            <img
+                                src={currentUser?.profilePicture || currentUser?.imageUri || '/default-avatar.png'}
+                                alt="Avatar"
+                                className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div>
+                                <p className="font-medium text-gray-900">{currentUser?.name}</p>
+                                <p className="text-sm text-gray-500">{currentUser?.email}</p>
+                                <p className="text-xs text-gray-400 capitalize">
+                                    {currentUser?.statut} • {currentUser?.departement}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p className="text-lg font-bold" style={{ color: primaryColor }}>
+                                    {reservationCount}
+                                </p>
+                                <p className="text-xs text-gray-500">Réservations</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold text-blue-600">
+                                    {currentUser?.historique?.length || 0}
+                                </p>
+                                <p className="text-xs text-gray-500">Consultés</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold text-green-600">
+                                    {currentUser?.docRecent?.length || 0}
+                                </p>
+                                <p className="text-xs text-gray-500">Récents</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="py-2">
+                        <NavLink
+                            to="/profile"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <User className="w-4 h-4 mr-3" />
+                            Mon Profil
+                        </NavLink>
+                        <NavLink
+                            to="/reservations"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <ShoppingBag className="w-4 h-4 mr-3" />
+                            Mes Réservations
+                            {reservationCount > 0 && (
+                                <span
+                                    className="ml-auto px-2 py-1 text-xs text-white rounded-full"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    {reservationCount}
+                                </span>
+                            )}
+                        </NavLink>
+                        <NavLink
+                            to="/messages"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <MessageCircle className="w-4 h-4 mr-3" />
+                            Messages
+                            {unreadMessages > 0 && (
+                                <span className="ml-auto px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                                    {unreadMessages}
+                                </span>
+                            )}
+                        </NavLink>
+                        <NavLink
+                            to="/history"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <History className="w-4 h-4 mr-3" />
+                            Historique
+                        </NavLink>
+                        <NavLink
+                            to="/favorites"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <Heart className="w-4 h-4 mr-3" />
+                            Favoris
+                        </NavLink>
+                        <NavLink
+                            to="/notifications"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <Bell className="w-4 h-4 mr-3" />
+                            Notifications
+                            {unreadNotifications > 0 && (
+                                <span className="ml-auto px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                                    {unreadNotifications}
+                                </span>
+                            )}
+                        </NavLink>
+                        <div className="border-t border-gray-100 my-2"></div>
+                        <NavLink
+                            to="/settings"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <Settings className="w-4 h-4 mr-3" />
+                            Paramètres
+                        </NavLink>
+                        <button
+                            onClick={handleSignOut}
+                            className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut className="w-4 h-4 mr-3" />
+                            Se déconnecter
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
+    const AuthButtons = () => (
+        <div className="flex items-center space-x-3">
+            <NavLink
+                to="/auth"
+                className="px-4 py-2 text-white rounded-lg transition-colors hover:opacity-90"
+                style={{ backgroundColor: primaryColor }}
+            >
+                Connexion
+            </NavLink>
+        </div>
+    );
 
     if (isLoading) {
         return (
-            <header className={`fixed w-full z-50 transition-all duration-300 ${
-                scrolled ? 'bg-white text-gray-800 shadow-lg py-2' : 'bg-transparent text-white py-4'
-            }`}>
-                <div className="container mx-auto px-4 flex justify-between items-center">
-                    <div className="animate-pulse">
+            <header className="bg-white shadow-sm border-b border-gray-200">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="animate-pulse flex items-center justify-between">
                         <div className="h-8 w-32 bg-gray-200 rounded"></div>
+                        <div className="h-8 w-24 bg-gray-200 rounded"></div>
                     </div>
                 </div>
             </header>
@@ -105,408 +266,222 @@ const Header: React.FC = () => {
 
     return (
         <header
-            className={`fixed w-full z-50 transition-all duration-300 ${
-                scrolled ? 'bg-white text-gray-800 shadow-lg py-2' : 'bg-transparent text-white py-4'
+            className={`sticky top-0 z-40 transition-all duration-300 ${
+                scrolled
+                    ? 'bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200'
+                    : 'bg-white border-b border-gray-200'
             }`}
         >
-            <div className="container mx-auto px-4 flex justify-between items-center">
-                {/* Logo */}
-                <NavLink to="/" className="flex items-center space-x-2">
-                    {orgSettings?.Logo && (
-                        <img
-                            src={orgSettings.Logo}
-                            alt={organizationName}
-                            className="h-10 w-10 object-contain"
-                        />
-                    )}
-                    <div
-                        className={`font-bold text-2xl transition-colors ${
-                            scrolled ? 'text-gray-800' : 'text-white'
-                        }`}
-                        style={{
-                            color: scrolled ? primaryColor : undefined
-                        }}
-                    >
-                        {organizationName}
-                    </div>
-                </NavLink>
-
-                {/* Navigation principale pour desktop */}
-                <nav className="hidden lg:flex items-center space-x-8">
-                    <NavLink
-                        to="/"
-                        className={({isActive}) => `
-              relative transition-all duration-200 py-2 px-1 group
-              ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
-            `}
-                        style={({isActive}) => isActive ? { color: primaryColor } : {}}
-                    >
-                        Accueil
-                        <span
-                            className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
+            <div className="container mx-auto px-4">
+                <div className="flex items-center justify-between h-16">
+                    <NavLink to="/" className="flex items-center space-x-3">
+                        <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: primaryColor }}
-                        />
-                    </NavLink>
-
-                    <NavLink
-                        to="/Books"
-                        className={({isActive}) => `
-              relative transition-all duration-200 py-2 px-1 group
-              ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
-            `}
-                        style={({isActive}) => isActive ? { color: primaryColor } : {}}
-                    >
-                        Livres
-                        <span
-                            className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
-                            style={{ backgroundColor: primaryColor }}
-                        />
-                    </NavLink>
-
-                    <NavLink
-                        to="/Thesis"
-                        className={({isActive}) => `
-              relative transition-all duration-200 py-2 px-1 group
-              ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
-            `}
-                        style={({isActive}) => isActive ? { color: primaryColor } : {}}
-                    >
-                        Memoires
-                        <span
-                            className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
-                            style={{ backgroundColor: primaryColor }}
-                        />
-                    </NavLink>
-
-                    <NavLink
-                        to="/aide"
-                        className={({isActive}) => `
-              relative transition-all duration-200 py-2 px-1 group
-              ${isActive ? '' : scrolled ? 'text-gray-700' : 'text-white'}
-            `}
-                        style={({isActive}) => isActive ? { color: primaryColor } : {}}
-                    >
-                        Aide
-                        <span
-                            className="absolute bottom-0 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full"
-                            style={{ backgroundColor: primaryColor }}
-                        />
-                    </NavLink>
-                </nav>
-
-                {/* Actions pour desktop */}
-                <div className="hidden lg:flex items-center space-x-4">
-                    {/* Recherche */}
-                    <button
-                        className={`p-2 rounded-full transition-all hover:bg-opacity-10 ${
-                            scrolled ? 'text-gray-700' : 'text-white'
-                        }`}
-                        style={{
-                            '--hover-bg': secondaryColor
-                        } as React.CSSProperties}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = `${secondaryColor}10`;
-                            e.currentTarget.style.color = primaryColor;
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = scrolled ? '#374151' : 'white';
-                        }}
-                    >
-                        <Search size={20} />
-                    </button>
-
-                    {/* Panier avec badge */}
-                    {currentUser && (
-                        <div className="relative">
-                            <NavLink
-                                to="/dashboard/cart"
-                                className={`p-2 rounded-full transition-all hover:bg-opacity-10 ${
-                                    scrolled ? 'text-gray-700' : 'text-white'
-                                }`}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = `${secondaryColor}10`;
-                                    e.currentTarget.style.color = primaryColor;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = scrolled ? '#374151' : 'white';
-                                }}
-                            >
-                                <ShoppingBag size={20} />
-                                {reservationCount > 0 && (
-                                    <span
-                                        className="absolute -top-1 -right-1 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                    {reservationCount}
-                  </span>
-                                )}
-                            </NavLink>
-                        </div>
-                    )}
-
-                    {/* Profil utilisateur ou bouton connexion */}
-                    {currentUser ? (
-                        <div className="relative">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowUserMenu(!showUserMenu);
-                                }}
-                                className="flex items-center space-x-2 p-2 rounded-full transition-all hover:bg-opacity-10"
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = `${secondaryColor}10`;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                }}
-                            >
-                                {currentUser.profilePicture ? (
-                                    <img
-                                        src={currentUser.profilePicture}
-                                        alt={currentUser.name}
-                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                    />
-                                ) : (
-                                    <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                                        {currentUser.name.charAt(0).toUpperCase()}
-                                    </div>
-                                )}
-                                <span className={`hidden md:block ${scrolled ? 'text-gray-700' : 'text-white'}`}>
-                  {currentUser.name.split(' ')[0]}
-                </span>
-                            </button>
-
-                            {/* Menu déroulant utilisateur */}
-                            {showUserMenu && (
-                                <div
-                                    className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border py-2 z-50"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    {/* Info utilisateur */}
-                                    <div className="px-4 py-3 border-b">
-                                        <div className="flex items-center space-x-3">
-                                            {currentUser.profilePicture ? (
-                                                <img
-                                                    src={currentUser.profilePicture}
-                                                    alt={currentUser.name}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                                                    style={{ backgroundColor: primaryColor }}
-                                                >
-                                                    {currentUser.name.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                            <div>
-                                                <p className="font-semibold text-gray-800">{currentUser.name}</p>
-                                                <p className="text-sm text-gray-500">{currentUser.email}</p>
-                                                <p className="text-xs" style={{ color: primaryColor }}>
-                                                    {currentUser.statut === 'etudiant' ? 'Étudiant' : 'Enseignant'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Menu items */}
-                                    <div className="py-1">
-                                        <NavLink
-                                            to="/dashboard"
-                                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                                            onClick={() => setShowUserMenu(false)}
-                                        >
-                                            <User className="h-4 w-4 mr-3" />
-                                            Mon Dashboard
-                                        </NavLink>
-
-                                        <NavLink
-                                            to="/dashboard/profile"
-                                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                                            onClick={() => setShowUserMenu(false)}
-                                        >
-                                            <Settings className="h-4 w-4 mr-3" />
-                                            Paramètres
-                                        </NavLink>
-
-                                        <NavLink
-                                            to="/dashboard/emprunts"
-                                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                                            onClick={() => setShowUserMenu(false)}
-                                        >
-                                            <BookOpen className="h-4 w-4 mr-3" />
-                                            Mes Emprunts
-                                        </NavLink>
-
-                                        <NavLink
-                                            to="/dashboard/notifications"
-                                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                                            onClick={() => setShowUserMenu(false)}
-                                        >
-                                            <Bell className="h-4 w-4 mr-3" />
-                                            Notifications
-                                        </NavLink>
-                                    </div>
-
-                                    {/* Déconnexion */}
-                                    <div className="border-t pt-1">
-                                        <button
-                                            onClick={handleLogout}
-                                            className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 transition-colors"
-                                        >
-                                            <LogOut className="h-4 w-4 mr-3" />
-                                            Se déconnecter
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <NavLink
-                            to="/auth"
-                            className="px-5 py-2 rounded-md transition-all duration-300 text-white font-medium"
-                            style={{
-                                backgroundColor: scrolled ? secondaryColor : primaryColor
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = scrolled ? primaryColor : secondaryColor;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = scrolled ? secondaryColor : primaryColor;
-                            }}
                         >
-                            Connexion
+                            <BookOpen className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="hidden sm:block">
+                            <h1
+                                className="text-xl font-bold"
+                                style={{ color: primaryColor }}
+                            >
+                                {organizationName}
+                            </h1>
+                        </div>
+                    </NavLink>
+                    <nav className="hidden lg:flex items-center space-x-8">
+                        <NavLink
+                            to="/"
+                            className={({ isActive }) =>
+                                `transition-colors ${
+                                    isActive
+                                        ? 'font-semibold'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`
+                            }
+                            style={({ isActive }) => isActive ? { color: primaryColor } : {}}
+                        >
+                            Accueil
                         </NavLink>
-                    )}
+                        <NavLink
+                            to="/books"
+                            className={({ isActive }) =>
+                                `transition-colors ${
+                                    isActive
+                                        ? 'font-semibold'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`
+                            }
+                            style={({ isActive }) => isActive ? { color: primaryColor } : {}}
+                        >
+                            Livres
+                        </NavLink>
+                        <NavLink
+                            to="/thesis"
+                            className={({ isActive }) =>
+                                `transition-colors ${
+                                    isActive
+                                        ? 'font-semibold'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`
+                            }
+                            style={({ isActive }) => isActive ? { color: primaryColor } : {}}
+                        >
+                            Mémoires
+                        </NavLink>
+                        <NavLink
+                            to="/helps"
+                            className={({ isActive }) =>
+                                `transition-colors ${
+                                    isActive
+                                        ? 'font-semibold'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`
+                            }
+                            style={({ isActive }) => isActive ? { color: primaryColor } : {}}
+                        >
+                            Aides
+                        </NavLink>
+                    </nav>
+                    <div className="flex items-center space-x-4">
+                        {currentUser && firebaseUser?.emailVerified && (
+                            <>
+                                <CartDropdown currentUser={currentUser} setCurrentUser={setCurrentUser} />
+                                <UserMenu />
+                            </>
+                        )}
+                        {!currentUser && <AuthButtons />}
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                            {isMenuOpen ? (
+                                <X className="h-6 w-6" />
+                            ) : (
+                                <Menu className="h-6 w-6" />
+                            )}
+                        </button>
+                    </div>
                 </div>
-
-                {/* Bouton menu mobile */}
-                <button
-                    className="lg:hidden p-2 rounded-full transition-colors"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                >
-                    {isMenuOpen ? (
-                        <X size={24} className={scrolled ? 'text-gray-800' : 'text-white'} />
-                    ) : (
-                        <Menu size={24} className={scrolled ? 'text-gray-800' : 'text-white'} />
-                    )}
-                </button>
-            </div>
-
-            {/* Menu mobile */}
-            {isMenuOpen && (
-                <div className="lg:hidden absolute top-full left-0 right-0 bg-white text-gray-800 shadow-lg">
-                    <div className="container mx-auto px-4 py-4">
-                        <nav className="flex flex-col space-y-4">
+                {isMenuOpen && (
+                    <div className="lg:hidden border-t border-gray-200 bg-white">
+                        <nav className="py-4 space-y-2">
                             <NavLink
                                 to="/"
-                                className={({isActive}) =>
-                                    `py-2 px-4 rounded-md transition-colors ${isActive
-                                        ? 'font-medium'
-                                        : 'hover:bg-gray-100'}`
-                                }
-                                style={({isActive}) => isActive ? {
-                                    backgroundColor: `${primaryColor}15`,
-                                    color: primaryColor
-                                } : {}}
+                                className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 Accueil
                             </NavLink>
-
                             <NavLink
                                 to="/books"
-                                className={({isActive}) =>
-                                    `py-2 px-4 rounded-md transition-colors ${isActive
-                                        ? 'font-medium'
-                                        : 'hover:bg-gray-100'}`
-                                }
-                                style={({isActive}) => isActive ? {
-                                    backgroundColor: `${primaryColor}15`,
-                                    color: primaryColor
-                                } : {}}
+                                className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 Livres
                             </NavLink>
-
                             <NavLink
-                                to="/Thesis"
-                                className={({isActive}) =>
-                                    `py-2 px-4 rounded-md transition-colors ${isActive
-                                        ? 'font-medium'
-                                        : 'hover:bg-gray-100'}`
-                                }
-                                style={({isActive}) => isActive ? {
-                                    backgroundColor: `${primaryColor}15`,
-                                    color: primaryColor
-                                } : {}}
+                                to="/thesis"
+                                className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
-                                Memoire
+                                Mémoires
                             </NavLink>
-
                             <NavLink
                                 to="/help"
-                                className={({isActive}) =>
-                                    `py-2 px-4 rounded-md transition-colors ${isActive
-                                        ? 'font-medium'
-                                        : 'hover:bg-gray-100'}`
-                                }
-                                style={({isActive}) => isActive ? {
-                                    backgroundColor: `${primaryColor}15`,
-                                    color: primaryColor
-                                } : {}}
+                                className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
-                                aide
+                                Aides
                             </NavLink>
-
-                            {currentUser ? (
-                                <>
+                            {currentUser && firebaseUser?.emailVerified ? (
+                                <div className="px-4 py-2 border-t border-gray-100 mt-2">
+                                    <div className="flex items-center space-x-3 mb-4">
+                                        <img
+                                            src={currentUser.profilePicture || currentUser.imageUri || '/default-avatar.png'}
+                                            alt="Avatar"
+                                            className="w-10 h-10 rounded-full object-cover"
+                                        />
+                                        <div>
+                                            <p className="font-medium text-gray-900">{currentUser.name}</p>
+                                            <p className="text-sm text-gray-500 capitalize">{currentUser.statut}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <NavLink
+                                            to="/profile"
+                                            className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <User className="w-4 h-4 mr-3" />
+                                            Mon Profil
+                                        </NavLink>
+                                        <NavLink
+                                            to="/reservations"
+                                            className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <ShoppingBag className="w-4 h-4 mr-3" />
+                                            Réservations
+                                            {reservationCount > 0 && (
+                                                <span
+                                                    className="ml-auto px-2 py-1 text-xs text-white rounded-full"
+                                                    style={{ backgroundColor: primaryColor }}
+                                                >
+                                                    {reservationCount}
+                                                </span>
+                                            )}
+                                        </NavLink>
+                                        <NavLink
+                                            to="/notifications"
+                                            className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Bell className="w-4 h-4 mr-3" />
+                                            Notifications
+                                            {unreadNotifications > 0 && (
+                                                <span className="ml-auto px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                                                    {unreadNotifications}
+                                                </span>
+                                            )}
+                                        </NavLink>
+                                        <button
+                                            onClick={handleSignOut}
+                                            className="flex items-center w-full px-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4 mr-3" />
+                                            Se déconnecter
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="px-4 py-2 border-t border-gray-100 mt-2 space-y-2">
                                     <NavLink
-                                        to="/dashboard"
-                                        className={({isActive}) =>
-                                            `py-2 px-4 rounded-md transition-colors flex items-center space-x-3 ${isActive
-                                                ? 'font-medium'
-                                                : 'hover:bg-gray-100'}`
-                                        }
-                                        style={({isActive}) => isActive ? {
-                                            backgroundColor: `${primaryColor}15`,
-                                            color: primaryColor
-                                        } : {}}
+                                        to="/auth"
+                                        className="block w-full px-4 py-2 text-center text-white rounded-lg transition-colors hover:opacity-90"
+                                        style={{ backgroundColor: primaryColor }}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
-                                        <User size={18} />
-                                        <span>Mon Dashboard</span>
+                                        Connexion
                                     </NavLink>
-
-                                    <button
-                                        onClick={handleLogout}
-                                        className="py-2 px-4 rounded-md transition-colors flex items-center space-x-3 hover:bg-red-50 text-red-600 text-left"
-                                    >
-                                        <LogOut size={18} />
-                                        <span>Se déconnecter</span>
-                                    </button>
-                                </>
-                            ) : (
-                                <NavLink
-                                    to="/auth"
-                                    className="mt-2 text-white font-medium py-3 rounded-md text-center transition-colors"
-                                    style={{ backgroundColor: secondaryColor }}
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    Connexion
-                                </NavLink>
+                                </div>
                             )}
                         </nav>
                     </div>
-                </div>
+                )}
+            </div>
+            {showUserMenu && (
+                <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setShowUserMenu(false)}
+                ></div>
+            )}
+            {showCartDropdown && (
+                <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setShowCartDropdown(false)}
+                ></div>
             )}
         </header>
     );
