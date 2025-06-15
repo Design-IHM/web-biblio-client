@@ -195,7 +195,7 @@ const ResourcesSection: React.FC = () => {
                         </div>
 
                         <a
-                            href="/catalogue?type=books"
+                            href="/books"
                             className="flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105"
                             style={{
                                 backgroundColor: `${primaryColor}10`,
@@ -277,7 +277,7 @@ const ResourcesSection: React.FC = () => {
                         </div>
 
                         <a
-                            href="/catalogue?type=theses"
+                            href="/thesis"
                             className="flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105"
                             style={{
                                 backgroundColor: `${secondaryColor}10`,
@@ -351,16 +351,6 @@ const ResourcesSection: React.FC = () => {
                                 style={{ backgroundColor: primaryColor }}
                             >
                                 Contacter un bibliothécaire
-                            </a>
-                            <a
-                                href="/catalogue"
-                                className="px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105 border-2"
-                                style={{
-                                    borderColor: secondaryColor,
-                                    color: secondaryColor
-                                }}
-                            >
-                                Recherche avancée
                             </a>
                         </div>
                     </div>
