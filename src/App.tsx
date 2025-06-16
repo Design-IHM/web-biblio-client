@@ -5,11 +5,11 @@ import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import DashboardLayout from './layouts/DashboardLayout';
-import ProfilePage from './pages/dashboard/Profile';
-import ReservationsPage from './pages/dashboard/EmpruntsPage.tsx';
-import NotificationsPage from './pages/dashboard/NotificationsPage';
-import HistoryPage from './pages/dashboard/ConsultationsPage';
-import ChatPage from './pages/dashboard/ChatPage';
+import ProfilePage from './pages/profile/Profile';
+import ReservationsPage from './pages/profile/EmpruntsPage.tsx';
+import NotificationsPage from './pages/profile/NotificationsPage';
+import HistoryPage from './pages/profile/ConsultationsPage';
+import ChatPage from './pages/profile/ChatPage';
 import BookDetailsPage from './pages/BookDetailsPage';
 import AuthPage from "./pages/AuthPage.tsx";
 import BooksPage from "./pages/BooksPage.tsx";
@@ -48,15 +48,11 @@ const router = createBrowserRouter([
         element: <ThesisDetailsPage />,
     },
     {
-        path: '/dashboard',
+        path: '/profile',
         element: <DashboardLayout />,
         children: [
             {
                 index: true,
-                element: <ProfilePage />,
-            },
-            {
-                path: 'profile',
                 element: <ProfilePage />,
             },
             {
