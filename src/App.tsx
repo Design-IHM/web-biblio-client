@@ -4,8 +4,6 @@ import { ConfigProvider } from './contexts/ConfigContext';
 import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
-import DashboardLayout from './layouts/DashboardLayout';
-import ProfilePage from './pages/profile/Profile';
 import ReservationsPage from './pages/profile/EmpruntsPage.tsx';
 import NotificationsPage from './pages/profile/NotificationsPage';
 import HistoryPage from './pages/profile/ConsultationsPage';
@@ -15,6 +13,8 @@ import AuthPage from "./pages/AuthPage.tsx";
 import BooksPage from "./pages/BooksPage.tsx";
 import ThesisPage from "./pages/ThesisPage.tsx";
 import ThesisDetailsPage from "./pages/ThesisDetailsPage.tsx";
+import ProfilePage from "./pages/profile/ProfilePage.tsx";
+import ProfileLayout from "./layouts/ProfileLayout.tsx";
 
 const router = createBrowserRouter([
     {
@@ -49,7 +49,7 @@ const router = createBrowserRouter([
     },
     {
         path: '/profile',
-        element: <DashboardLayout />,
+        element: <ProfileLayout />,
         children: [
             {
                 index: true,

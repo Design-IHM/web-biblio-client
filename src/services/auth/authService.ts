@@ -4,13 +4,18 @@ import {
     signOut as firebaseSignOut,
     sendEmailVerification as firebaseSendEmailVerification,
     sendPasswordResetEmail,
-    updateProfile
+    updateProfile,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    deleteUser
 } from 'firebase/auth';
 import {
     doc,
     setDoc,
     getDoc,
     updateDoc,
+    deleteDoc,
     Timestamp,
     getDocs,
     collection
@@ -265,13 +270,36 @@ class AuthService {
                 throw new Error('Aucun utilisateur connecté');
             }
 
+            if (!firebaseUser.email) {
+                throw new Error('Email utilisateur non disponible');
+            }
+
+            // Validation des données
+            if (data.name !== undefined && data.name.trim().length < 2) {
+                throw new Error('Le nom doit contenir au moins 2 caractères');
+            }
+
+            if (data.email !== undefined) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(data.email)) {
+                    throw new Error('Format d\'email invalide');
+                }
+            }
+
+            if (data.tel !== undefined && data.tel.length > 0) {
+                const phoneRegex = /^[+]?[\d\s\-()]{8,}$/;
+                if (!phoneRegex.test(data.tel)) {
+                    throw new Error('Format de téléphone invalide');
+                }
+            }
+
             // S'assurer que niveau et departement ne sont jamais undefined
             const updateData = { ...data };
             if (updateData.niveau === undefined) updateData.niveau = '';
             if (updateData.departement === undefined) updateData.departement = '';
 
             // Mettre à jour dans Firestore
-            await updateDoc(doc(db, 'BiblioUser', firebaseUser.uid), updateData);
+            await updateDoc(doc(db, 'BiblioUser', firebaseUser.email), updateData);
 
             // Mettre à jour le profil Firebase Auth si nécessaire
             const authUpdateData: { displayName?: string; photoURL?: string } = {};
@@ -281,24 +309,235 @@ class AuthService {
             if (Object.keys(authUpdateData).length > 0) {
                 await updateProfile(firebaseUser, authUpdateData);
             }
-        } catch (error) {
+
+            console.log('✅ Profil utilisateur mis à jour avec succès');
+        } catch (error: unknown) {
             console.error('❌ Erreur mise à jour profil:', error);
+
+            // Vérifie que l'erreur est un objet avec une propriété "code" (Firebase ou custom)
+            if (
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error &&
+                typeof (error as { code: unknown }).code === 'string'
+            ) {
+                const code = (error as { code: string }).code;
+
+                switch (code) {
+                    case 'auth/requires-recent-login':
+                        throw new Error('Cette opération nécessite une connexion récente. Veuillez vous reconnecter et réessayer');
+                    case 'auth/user-not-found':
+                        throw new Error('Utilisateur introuvable');
+                    case 'auth/user-disabled':
+                        throw new Error('Ce compte utilisateur a été désactivé');
+                    case 'auth/network-request-failed':
+                        throw new Error('Erreur de connexion réseau. Vérifiez votre connexion internet');
+                    case 'permission-denied':
+                        throw new Error('Vous n\'avez pas les permissions nécessaires pour modifier ces informations');
+                    case 'not-found':
+                        throw new Error('Document utilisateur introuvable dans la base de données');
+                    default:
+                        { const message = (error as { message?: string }).message;
+                        throw new Error(message || 'Erreur lors de la mise à jour du profil'); }
+                }
+            }
+            throw error;
+        }
+
+    }
+
+    /**
+     * Changement de mot de passe
+     */
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        try {
+            const firebaseUser = auth.currentUser;
+            if (!firebaseUser) {
+                throw new Error('Aucun utilisateur connecté');
+            }
+
+            if (!firebaseUser.email) {
+                throw new Error('Email utilisateur non disponible');
+            }
+
+            // Validation des paramètres
+            if (!currentPassword || currentPassword.trim().length === 0) {
+                throw new Error('Le mot de passe actuel est requis');
+            }
+
+            if (!newPassword || newPassword.trim().length < 6) {
+                throw new Error('Le nouveau mot de passe doit contenir au moins 6 caractères');
+            }
+
+            if (currentPassword === newPassword) {
+                throw new Error('Le nouveau mot de passe doit être différent de l\'ancien');
+            }
+
+            // Créer les credentials pour la ré-authentification
+            const credential = EmailAuthProvider.credential(
+                firebaseUser.email,
+                currentPassword
+            );
+
+            // Ré-authentifier l'utilisateur avec son mot de passe actuel
+            await reauthenticateWithCredential(firebaseUser, credential);
+
+            // Mettre à jour le mot de passe
+            await updatePassword(firebaseUser, newPassword);
+
+            console.log('✅ Mot de passe mis à jour avec succès');
+
+            // Optionnel : Mettre à jour la dernière modification dans Firestore
+            try {
+                await updateDoc(doc(db, 'BiblioUser', firebaseUser.email), {
+                    lastPasswordChange: Timestamp.now()
+                });
+            } catch (firestoreError) {
+                console.warn('⚠️ Impossible de mettre à jour la date de changement de mot de passe:', firestoreError);
+            }
+
+        } catch (error: unknown) {
+            console.error('❌ Erreur mise à jour profil:', error);
+
+            // Vérifie que l'erreur est un objet avec une propriété "code" (Firebase ou custom)
+            if (
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error &&
+                typeof (error as { code: unknown }).code === 'string'
+            ) {
+                const code = (error as { code: string }).code;
+
+                switch (code) {
+                    case 'auth/requires-recent-login':
+                        throw new Error('Cette opération nécessite une connexion récente. Veuillez vous reconnecter et réessayer');
+                    case 'auth/user-not-found':
+                        throw new Error('Utilisateur introuvable');
+                    case 'auth/user-disabled':
+                        throw new Error('Ce compte utilisateur a été désactivé');
+                    case 'auth/network-request-failed':
+                        throw new Error('Erreur de connexion réseau. Vérifiez votre connexion internet');
+                    case 'permission-denied':
+                        throw new Error('Vous n\'avez pas les permissions nécessaires pour modifier ces informations');
+                    case 'not-found':
+                        throw new Error('Document utilisateur introuvable dans la base de données');
+                    default:
+                        // Si message est présent
+                        { const message = (error as { message?: string }).message;
+                        throw new Error(message || 'Erreur lors de la mise à jour du profil'); }
+                }
+            }
+            throw error;
+        }
+
+    }
+
+    /**
+     * Suppression du compte utilisateur
+     */
+    async deleteAccount(currentPassword: string): Promise<void> {
+        try {
+            const firebaseUser = auth.currentUser;
+            if (!firebaseUser) {
+                throw new Error('Aucun utilisateur connecté');
+            }
+
+            if (!firebaseUser.email) {
+                throw new Error('Email utilisateur non disponible');
+            }
+
+            // Validation du mot de passe
+            if (!currentPassword || currentPassword.trim().length === 0) {
+                throw new Error('Le mot de passe est requis pour supprimer le compte');
+            }
+
+            // Récupérer les données utilisateur avant suppression (pour vérifications)
+            const userDoc = await getDoc(doc(db, 'BiblioUser', firebaseUser.email));
+            const userData = userDoc.exists() ? userDoc.data() as BiblioUser : null;
+
+            // Vérifier s'il y a des emprunts actifs
+            if (userData?.reservations && userData.reservations.length > 0) {
+                const activeReservations = userData.reservations.filter(r =>
+                    r.etat === 'reserver'
+                );
+                if (activeReservations.length > 0) {
+                    throw new Error('Impossible de supprimer le compte. Vous avez des emprunts ou réservations en cours. Veuillez d\'abord les retourner ou les annuler.');
+                }
+            }
+
+            // Créer les credentials pour la ré-authentification
+            const credential = EmailAuthProvider.credential(
+                firebaseUser.email,
+                currentPassword
+            );
+
+            // Ré-authentifier l'utilisateur avant la suppression
+            await reauthenticateWithCredential(firebaseUser, credential);
+
+            // Supprimer le document utilisateur de Firestore
+            await deleteDoc(doc(db, 'BiblioUser', firebaseUser.email));
+
+            // Enfin, supprimer le compte Firebase Auth
+            await deleteUser(firebaseUser);
+
+            console.log('✅ Compte utilisateur supprimé avec succès');
+
+        } catch (error: unknown) {
+            console.error('❌ Erreur mise à jour profil:', error);
+
+            // Vérifie que l'erreur est un objet avec une propriété "code" (Firebase ou custom)
+            if (
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error &&
+                typeof (error as { code: unknown }).code === 'string'
+            ) {
+                const code = (error as { code: string }).code;
+
+                switch (code) {
+                    case 'auth/requires-recent-login':
+                        throw new Error('Cette opération nécessite une connexion récente. Veuillez vous reconnecter et réessayer');
+                    case 'auth/user-not-found':
+                        throw new Error('Utilisateur introuvable');
+                    case 'auth/user-disabled':
+                        throw new Error('Ce compte utilisateur a été désactivé');
+                    case 'auth/network-request-failed':
+                        throw new Error('Erreur de connexion réseau. Vérifiez votre connexion internet');
+                    case 'permission-denied':
+                        throw new Error('Vous n\'avez pas les permissions nécessaires pour modifier ces informations');
+                    case 'not-found':
+                        throw new Error('Document utilisateur introuvable dans la base de données');
+                    default:
+                        // Si message est présent
+                        { const message = (error as { message?: string }).message;
+                        throw new Error(message || 'Erreur lors de la mise à jour du profil'); }
+                }
+            }
+
+            // Si l'erreur n'a pas de code, la relancer telle quelle
             throw error;
         }
     }
 
     /**
+     * Alias pour updateProfile (pour compatibilité avec vos composants)
+     */
+    async updateProfile(data: Partial<BiblioUser>): Promise<void> {
+        return this.updateUserProfile(data);
+    }
+
+    /**
      * Mise à jour de l'historique des documents
      */
-    async updateDocHistory(userId: string, docItem: HistoriqueItem): Promise<void> {
+    async updateDocHistory(email: string, docItem: HistoriqueItem): Promise<void> {
         try {
-            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', email));
             if (!userDoc.exists()) return;
 
             const userData = userDoc.data() as BiblioUser;
             const updatedHistory = [docItem, ...userData.historique].slice(0, 50);
 
-            await updateDoc(doc(db, 'BiblioUser', userId), {
+            await updateDoc(doc(db, 'BiblioUser', email), {
                 historique: updatedHistory
             });
         } catch (error) {
@@ -309,15 +548,15 @@ class AuthService {
     /**
      * Ajouter un document récent
      */
-    async addRecentDoc(userId: string, docItem: DocRecentItem): Promise<void> {
+    async addRecentDoc(email: string, docItem: DocRecentItem): Promise<void> {
         try {
-            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', email));
             if (!userDoc.exists()) return;
 
             const userData = userDoc.data() as BiblioUser;
             const updatedRecent = [docItem, ...userData.docRecent].slice(0, 20);
 
-            await updateDoc(doc(db, 'BiblioUser', userId), {
+            await updateDoc(doc(db, 'BiblioUser', email), {
                 docRecent: updatedRecent
             });
         } catch (error) {
@@ -328,15 +567,15 @@ class AuthService {
     /**
      * Ajouter une notification
      */
-    async addNotification(userId: string, notification: NotificationItem): Promise<void> {
+    async addNotification(email: string, notification: NotificationItem): Promise<void> {
         try {
-            const userDoc = await getDoc(doc(db, 'BiblioUser', userId));
+            const userDoc = await getDoc(doc(db, 'BiblioUser', email));
             if (!userDoc.exists()) return;
 
             const userData = userDoc.data() as BiblioUser;
             const updatedNotifications = [notification, ...userData.notifications];
 
-            await updateDoc(doc(db, 'BiblioUser', userId), {
+            await updateDoc(doc(db, 'BiblioUser', email), {
                 notifications: updatedNotifications
             });
         } catch (error) {
@@ -347,7 +586,7 @@ class AuthService {
     /**
      * Mettre à jour l'état d'un emprunt
      */
-    async updateEtatEmprunt(userId: string, etatIndex: number, nouvelEtat: EtatValue, tabEtat?: TabEtatEntry): Promise<void> {
+    async updateEtatEmprunt(email: string, etatIndex: number, nouvelEtat: EtatValue, tabEtat?: TabEtatEntry): Promise<void> {
         try {
             // Validation de l'index
             if (etatIndex < 1 || etatIndex > 5) {
@@ -368,12 +607,12 @@ class AuthService {
             if (tabEtat) {
                 // Validation optionnelle de TabEtatEntry
                 if (!Array.isArray(tabEtat) || tabEtat.length !== 7) {
-                    throw new Error('TabEtatEntry doit être un tableau de 6 éléments');
+                    throw new Error('TabEtatEntry doit être un tableau de 7 éléments');
                 }
                 updateData[`tabEtat${etatIndex}`] = tabEtat;
             }
 
-            await updateDoc(doc(db, 'BiblioUser', userId), updateData);
+            await updateDoc(doc(db, 'BiblioUser', email), updateData);
             console.log(`✅ État emprunt ${etatIndex} mis à jour: ${nouvelEtat}`);
 
         } catch (error) {
