@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ArrowRight, LogIn, Book, Users, Clock, GraduationCap } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
+import { useConfig } from '../../contexts/ConfigContext';
 import { db } from '../../configs/firebase';
 import heroImage from "../../assets/images/home/hero_image.jpg"
 import book1 from "../../assets/images/home/book1.jpg"

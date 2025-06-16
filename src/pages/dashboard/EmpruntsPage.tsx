@@ -238,7 +238,7 @@ const ReservationsPage = () => {
     <div className="space-y-8">
       {/* En-tête */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Mes Réservations</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Mes Emprunts</h1>
         <p className="text-gray-500">Gérez vos emprunts et réservations de livres</p>
       </div>
       

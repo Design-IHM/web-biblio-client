@@ -141,7 +141,7 @@ const Footer = () => {
                             </li>
                             <li>
                                 <a
-                                    href="/dashboard/reservations"
+                                    href="/dashboard/emprunts"
                                     className="text-gray-300 transition-colors"
                                     onMouseEnter={(e) => e.currentTarget.style.color = primaryColor}
                                     onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}

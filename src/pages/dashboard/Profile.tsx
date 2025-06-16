@@ -1,396 +1,372 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { authService } from '../../services/auth/authService';
+import { BiblioUser } from '../../types/auth';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useConfig } from '../../contexts/ConfigContext';
+import { Camera, Edit, Shield, Bell, UserCircle, ChevronRight, Check, X } from 'lucide-react';
+// import { useNavigate } from 'react-router-dom'; // Removed for artifact compatibility
 
-const Profile = () => {
-  // État pour gérer les différents onglets
-  const [activeTab, setActiveTab] = useState('personal');
-  
-  // Couleurs du thème
-  const primaryColor = "#ff8c00";
-  const secondaryColor = "#1b263b";
-  
-  return (
-    <div className="bg-gray-50 min-h-screen py-8 px-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-        {/* En-tête du profil avec photo */}
-        <div style={{ backgroundColor: secondaryColor }} className="px-8 py-12 text-white">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="relative mb-6 md:mb-0">
-              <div className="w-36 h-36 rounded-full bg-white p-1 shadow-lg">
-                <div 
-                  className="w-full h-full rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <span className="text-5xl font-bold text-white">BBD</span>
+type ProfileTab = 'personal' | 'security' | 'notifications';
+
+const ProfilePage = () => {
+    const [user, setUser] = useState<BiblioUser | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<ProfileTab>('personal');
+    // const navigate = useNavigate(); // Removed for artifact compatibility
+    const { orgSettings } = useConfig();
+
+    const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
+    const secondaryColor = '#1b263b';
+
+    // Helper function to darken color
+    const darkenColor = (color: string, percent: number = 20) => {
+        const num = parseInt(color.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    };
+
+    const primaryColorDark = darkenColor(primaryColor);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const currentUser = await authService.getCurrentUser();
+                if (currentUser) {
+                    setUser(currentUser);
+                } else {
+                    // navigate('/auth'); // Removed for artifact compatibility
+                    console.log('Redirect to auth');
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération de l'utilisateur:", error);
+                // navigate('/auth'); // Removed for artifact compatibility
+                console.log('Redirect to auth');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []); // Removed navigate dependency for artifact compatibility
+
+    // Composant bouton d'onglet moderne
+    const TabButton = ({ icon, label, isActive, onClick }: { icon: JSX.Element, label: string, isActive: boolean, onClick: () => void }) => (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 font-medium text-sm md:text-base transition-all duration-300 rounded-xl relative overflow-hidden ${
+                isActive
+                    ? 'text-white shadow-lg transform scale-105'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-white/60'
+            }`}
+            style={{
+                background: isActive ? `linear-gradient(135deg, ${primaryColor}, ${primaryColorDark})` : 'transparent'
+            }}
+        >
+            <div className={`transition-transform duration-300 ${isActive ? 'scale-110' : ''}`}>
+                {icon}
+            </div>
+            <span className="hidden md:inline whitespace-nowrap">{label}</span>
+            {isActive && (
+                <div className="absolute inset-0 bg-white/10 rounded-xl animate-pulse"></div>
+            )}
+        </button>
+    );
+
+    // Composant champ d'information redesigné
+    const InfoField = ({ label, value, editable = true, icon }: { label: string, value: string, editable?: boolean, icon?: JSX.Element }) => (
+        <div className="group">
+            <label className="text-sm font-semibold text-gray-600 mb-2 block">{label}</label>
+            <div className={`relative bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 p-4 transition-all duration-300 ${
+                editable ? 'hover:border-indigo-300 hover:shadow-md cursor-pointer' : ''
+            } group-hover:transform group-hover:scale-[1.02]`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {icon && <div className="text-gray-500">{icon}</div>}
+                        <p className="text-gray-800 font-medium">{value}</p>
+                    </div>
+                    {editable && (
+                        <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 rounded-lg hover:bg-white/80"
+                            style={{ color: primaryColor }}
+                        >
+                            <Edit size={16} />
+                        </button>
+                    )}
                 </div>
-              </div>
-              <button 
-                className="absolute bottom-0 right-0 rounded-full p-2"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
+                {editable && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                )}
             </div>
-            <div className="md:ml-8 text-center md:text-left">
-              <h1 className="text-3xl font-bold">BornBeforeDesign</h1>
-              <p className="text-gray-300 mt-1">Membre depuis 2023</p>
-              <div className="mt-4 inline-flex items-center px-4 py-1 rounded-full bg-opacity-20 bg-white">
-                <div className="w-2 h-2 rounded-full bg-green-400 mr-2"></div>
-                <span className='text-black'>En ligne</span>
-              </div>
-            </div>
-          </div>
         </div>
-        
-        {/* Navigation entre les sections */}
-        <div className="px-6 border-b">
-          <div className="flex overflow-x-auto">
-            <button 
-              onClick={() => setActiveTab('personal')}
-              className={`py-4 px-6 font-medium transition-colors duration-200 whitespace-nowrap ${
-                activeTab === 'personal' 
-                  ? 'border-b-2 text-gray-800' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              style={activeTab === 'personal' ? { borderColor: primaryColor } : {}}
-            >
-              Informations personnelles
-            </button>
-            <button 
-              onClick={() => setActiveTab('preferences')}
-              className={`py-4 px-6 font-medium transition-colors duration-200 whitespace-nowrap ${
-                activeTab === 'preferences' 
-                  ? 'border-b-2 text-gray-800' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              style={activeTab === 'preferences' ? { borderColor: primaryColor } : {}}
-            >
-              Préférences
-            </button>
-            <button 
-              onClick={() => setActiveTab('security')}
-              className={`py-4 px-6 font-medium transition-colors duration-200 whitespace-nowrap ${
-                activeTab === 'security' 
-                  ? 'border-b-2 text-gray-800' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              style={activeTab === 'security' ? { borderColor: primaryColor } : {}}
-            >
-              Confidentialité et sécurité
-            </button>
-          </div>
+    );
+
+    // Composant informations personnelles
+    const PersonalInformation = ({ user }: { user: BiblioUser }) => (
+        <div className="space-y-8">
+            <div className="text-center md:text-left">
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">Informations Personnelles</h3>
+                <p className="text-gray-600">Gérez vos informations de profil et vos préférences</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InfoField label="Nom Complet" value={user.name} icon={<UserCircle size={20} />} />
+                <InfoField label="Adresse Email" value={user.email} editable={false} />
+                <InfoField label="Matricule" value={user.matricule} editable={false} />
+                <InfoField label="Téléphone" value={user.tel} />
+                <InfoField label="Département" value={user.departement || 'Non spécifié'} editable={false} />
+                <InfoField label="Niveau" value={user.niveau ? user.niveau.toUpperCase() : 'Non spécifié'} editable={false} />
+                <InfoField label="Date d'inscription" value={user.createdAt.toDate().toLocaleDateString('fr-FR')} editable={false} />
+                <InfoField label="Dernière connexion" value={user.lastLoginAt.toDate().toLocaleString('fr-FR')} editable={false} />
+            </div>
         </div>
-        
-        {/* Contenu des onglets */}
-        <div className="p-8">
-          {/* Informations personnelles */}
-          {activeTab === 'personal' && (
-            <div className="animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-6" style={{ color: secondaryColor }}>
-                Informations personnelles
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Prénom
-                  </label>
-                  <input 
-                    type="text" 
-                    value="BornBefore" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                    style={{ focusRing: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom
-                  </label>
-                  <input 
-                    type="text" 
-                    value="Design" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input 
-                    type="email" 
-                    value="bornbeforedesign@gmail.com" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Téléphone
-                  </label>
-                  <input 
-                    type="tel" 
-                    value="06 12 34 56 78" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Adresse
-                  </label>
-                  <input 
-                    type="text" 
-                    value="123 Rue de la Bibliothèque" 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition h-32"
-                    placeholder="Parlez-nous de vous..."
-                  ></textarea>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex justify-end">
-                <button 
-                  className="px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-                  style={{ backgroundColor: primaryColor }}
+    );
+
+    // Composant carte de sécurité
+    const SecurityCard = ({ title, description, buttonText, buttonColor, icon }: {
+        title: string;
+        description: string;
+        buttonText: string;
+        buttonColor: string;
+        icon: JSX.Element;
+    }) => (
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 transition-all duration-300 hover:shadow-lg group">
+            <div className="flex items-start gap-4">
+                <div
+                    className="p-3 rounded-xl text-white shadow-lg"
+                    style={{ backgroundColor: buttonColor }}
                 >
-                  Enregistrer les modifications
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Préférences */}
-          {activeTab === 'preferences' && (
-            <div className="animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-6" style={{ color: secondaryColor }}>
-                Préférences
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Langue et région</h3>
-                  
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Langue
-                    </label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg bg-white">
-                      <option>Français</option>
-                      <option>English</option>
-                      <option>Español</option>
-                      <option>Deutsch</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Format de date
-                    </label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg bg-white">
-                      <option>JJ/MM/AAAA</option>
-                      <option>MM/JJ/AAAA</option>
-                      <option>AAAA-MM-JJ</option>
-                    </select>
-                  </div>
+                    {icon}
                 </div>
-                
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Thème</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <input type="radio" id="theme-light" name="theme" className="h-4 w-4" checked />
-                      <label htmlFor="theme-light" className="ml-2">Clair</label>
-                    </div>
-                    <div className="flex items-center">
-                      <input type="radio" id="theme-dark" name="theme" className="h-4 w-4" />
-                      <label htmlFor="theme-dark" className="ml-2">Sombre</label>
-                    </div>
-                    <div className="flex items-center">
-                      <input type="radio" id="theme-system" name="theme" className="h-4 w-4" />
-                      <label htmlFor="theme-system" className="ml-2">Système</label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 md:col-span-2">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Notifications</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Notifications par email</h4>
-                        <p className="text-sm text-gray-500">Recevoir des mises à jour par email</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Notifications par SMS</h4>
-                        <p className="text-sm text-gray-500">Recevoir des alertes par SMS</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Newsletter</h4>
-                        <p className="text-sm text-gray-500">S'abonner à notre newsletter mensuelle</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex justify-end">
-                <button 
-                  className="px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Enregistrer les préférences
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Confidentialité et sécurité */}
-          {activeTab === 'security' && (
-            <div className="animate-fadeIn">
-              <h2 className="text-xl font-semibold mb-6" style={{ color: secondaryColor }}>
-                Confidentialité et sécurité
-              </h2>
-              
-              <div className="space-y-8">
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Mot de passe</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mot de passe actuel
-                      </label>
-                      <input 
-                        type="password" 
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                    <div></div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nouveau mot de passe
-                      </label>
-                      <input 
-                        type="password" 
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirmer le mot de passe
-                      </label>
-                      <input 
-                        type="password" 
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none transition"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <button 
-                      className="px-4 py-2 rounded-lg text-white font-medium"
-                      style={{ backgroundColor: primaryColor }}
+                <div className="flex-1">
+                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{title}</h4>
+                    <p className="text-gray-600 mb-4 leading-relaxed">{description}</p>
+                    <button
+                        className="px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                        style={{ backgroundColor: buttonColor }}
                     >
-                      Mettre à jour le mot de passe
+                        {buttonText}
+                        <ChevronRight size={16} className="inline ml-2" />
                     </button>
-                  </div>
                 </div>
-                
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Authentification à deux facteurs</h3>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="mb-1">Statut: <span className="text-red-500 font-medium">Désactivé</span></p>
-                      <p className="text-sm text-gray-500">Protégez votre compte avec une couche de sécurité supplémentaire</p>
-                    </div>
-                    <button 
-                      className="px-4 py-2 rounded-lg text-white font-medium"
-                      style={{ backgroundColor: secondaryColor }}
-                    >
-                      Activer
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4" style={{ color: secondaryColor }}>Confidentialité du profil</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Profil public</h4>
-                        <p className="text-sm text-gray-500">Permettre aux autres utilisateurs de voir votre profil</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Afficher l'activité</h4>
-                        <p className="text-sm text-gray-500">Montrer votre activité aux autres utilisateurs</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-medium mb-4 text-red-500">Zone de danger</h3>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Supprimer mon compte</h4>
-                      <p className="text-sm text-gray-500">Cette action est irréversible et supprimera toutes vos données</p>
-                    </div>
-                    <button className="px-4 py-2 rounded-lg text-white font-medium bg-red-500">
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
         </div>
-      </div>
-    </div>
-  );
+    );
+
+    // Composant paramètres de sécurité
+    const SecuritySettings = () => (
+        <div className="space-y-8">
+            <div className="text-center md:text-left">
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">Sécurité du Compte</h3>
+                <p className="text-gray-600">Protégez votre compte avec des mesures de sécurité avancées</p>
+            </div>
+
+            <div className="grid gap-6">
+                <SecurityCard
+                    title="Changer le mot de passe"
+                    description="Utilisez un mot de passe fort et unique pour protéger votre compte"
+                    buttonText="Mettre à jour"
+                    buttonColor={primaryColor}
+                    icon={<Shield size={24} />}
+                />
+                <SecurityCard
+                    title="Authentification à deux facteurs"
+                    description="Ajoutez une couche de sécurité supplémentaire avec la vérification en deux étapes"
+                    buttonText="Activer le 2FA"
+                    buttonColor={secondaryColor}
+                    icon={<Check size={24} />}
+                />
+            </div>
+        </div>
+    );
+
+    // Composant toggle de notification moderne
+    const NotificationToggle = ({ title, description, isActive }: { title: string, description: string, isActive: boolean }) => {
+        const [checked, setChecked] = useState(isActive);
+
+        return (
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 transition-all duration-300 hover:shadow-md group">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+                        <p className="text-gray-600 leading-relaxed">{description}</p>
+                    </div>
+                    <div className="ml-6">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => setChecked(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className={`w-14 h-8 rounded-full peer transition-all duration-300 ${
+                                checked ? 'bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg' : 'bg-gray-300'
+                            } peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300/50 relative`}>
+                                <div className={`absolute top-1 left-1 bg-white rounded-full h-6 w-6 transition-transform duration-300 shadow-md ${
+                                    checked ? 'translate-x-6' : 'translate-x-0'
+                                }`}></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Composant paramètres de notifications
+    const NotificationSettings = () => (
+        <div className="space-y-8">
+            <div className="text-center md:text-left">
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">Préférences de Notification</h3>
+                <p className="text-gray-600">Personnalisez vos notifications pour rester informé</p>
+            </div>
+
+            <div className="space-y-4">
+                <NotificationToggle
+                    title="Notifications par Email"
+                    description="Recevez des rappels d'emprunt, confirmations de réservation et alertes importantes"
+                    isActive={true}
+                />
+                <NotificationToggle
+                    title="Newsletter de la bibliothèque"
+                    description="Restez informé des nouveautés, événements spéciaux et annonces de la bibliothèque"
+                    isActive={true}
+                />
+                <NotificationToggle
+                    title="Alertes de disponibilité"
+                    description="Soyez notifié instantanément quand un livre de votre liste d'attente devient disponible"
+                    isActive={false}
+                />
+            </div>
+        </div>
+    );
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+                <LoadingSpinner size="lg" text="Chargement du profil..." />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+                <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <X className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Utilisateur non trouvé</h2>
+                    <p className="text-gray-500">Veuillez vous reconnecter à votre compte.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="min-h-screen p-4 md:p-6 lg:p-8"
+            style={{
+                background: `linear-gradient(to bottom right, #f8fafc, ${primaryColor}20, ${secondaryColor}10)`
+            }}
+        >
+            <div className="max-w-6xl mx-auto space-y-8">
+                {/* Header avec avatar et informations principales */}
+                <div
+                    className="relative overflow-hidden rounded-3xl shadow-2xl"
+                    style={{
+                        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${secondaryColor} 100%)`
+                    }}
+                >
+                    {/* Éléments décoratifs */}
+                    <div className="absolute top-0 right-0 w-96 h-96 opacity-10">
+                        <div className="w-full h-full bg-white rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 opacity-5">
+                        <div className="w-full h-full bg-white rounded-full transform -translate-x-1/2 translate-y-1/2"></div>
+                    </div>
+
+                    <div className="relative z-10 p-8 md:p-12">
+                        <div className="flex flex-col lg:flex-row items-center gap-8">
+                            {/* Avatar avec overlay au hover */}
+                            <div className="relative group">
+                                <div className="relative">
+                                    <img
+                                        src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name.replace(' ', '+')}&background=ffffff&color=${primaryColor.replace('#', '')}&size=200&font-size=0.4`}
+                                        alt="Avatar"
+                                        className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white/30 shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                        <Camera className="w-8 h-8 text-white" />
+                                    </div>
+                                </div>
+                                <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                </div>
+                            </div>
+
+                            {/* Informations utilisateur */}
+                            <div className="text-center lg:text-left text-white flex-1">
+                                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 tracking-tight">
+                                    {user.name}
+                                </h1>
+                                <p className="text-lg md:text-xl text-white/80 mb-4 font-medium">
+                                    {user.email}
+                                </p>
+                                <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                                    <span
+                                        className="px-4 py-2 rounded-full text-sm font-semibold bg-white/20 backdrop-blur-sm border border-white/30"
+                                    >
+                                        {user.statut === 'etudiant' ? `Étudiant(e) - ${user.niveau ? user.niveau.toUpperCase() : 'N/A'}` : 'Enseignant(e)'}
+                                    </span>
+                                    <span className="px-4 py-2 rounded-full text-sm font-semibold bg-white/20 backdrop-blur-sm border border-white/30">
+                                        {user.departement || 'Non spécifié'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation des onglets */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 p-2">
+                    <div className="flex space-x-1">
+                        <TabButton
+                            icon={<UserCircle size={20} />}
+                            label="Informations Personnelles"
+                            isActive={activeTab === 'personal'}
+                            onClick={() => setActiveTab('personal')}
+                        />
+                        <TabButton
+                            icon={<Shield size={20} />}
+                            label="Sécurité"
+                            isActive={activeTab === 'security'}
+                            onClick={() => setActiveTab('security')}
+                        />
+                        <TabButton
+                            icon={<Bell size={20} />}
+                            label="Notifications"
+                            isActive={activeTab === 'notifications'}
+                            onClick={() => setActiveTab('notifications')}
+                        />
+                    </div>
+                </div>
+
+                {/* Contenu des onglets */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+                    <div className="p-6 md:p-8 lg:p-10">
+                        {activeTab === 'personal' && <PersonalInformation user={user} />}
+                        {activeTab === 'security' && <SecuritySettings />}
+                        {activeTab === 'notifications' && <NotificationSettings />}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
-export default Profile;
+export default ProfilePage;

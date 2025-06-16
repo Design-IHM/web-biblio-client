@@ -141,6 +141,22 @@ const ThesisDetailsPage: React.FC = () => {
         fetchThesisData();
     }, [id]);
 
+    // Dans ThesisDetailsPage.tsx
+
+// ... dans le composant ThesisDetailsPage, après les autres hooks ...
+
+useEffect(() => {
+    // Enregistre la consultation dans l'historique
+    if (isAuthenticated && currentUser && thesis) {
+        historyService.addHistoryEvent({
+            userId: currentUser.id,
+            type: 'thesis_view',
+            itemId: thesis.id,
+            itemTitle: thesis.theme || thesis.name,
+            itemCoverUrl: thesis.image,
+        });
+    }
+}, [isAuthenticated, currentUser, thesis]);
     // Gestion de la consultation
     const handleView = async () => {
         if (!isAuthenticated) {
