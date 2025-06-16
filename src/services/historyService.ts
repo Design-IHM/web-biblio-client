@@ -1,13 +1,12 @@
-// src/services/historyService.ts
-import { 
-    collection, 
-    addDoc, 
-    query, 
-    where, 
-    orderBy, 
-    limit, 
+import {
+    collection,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    limit,
     getDocs,
-    Timestamp 
+    Timestamp
 } from 'firebase/firestore';
 import { db } from '../configs/firebase';
 
@@ -49,14 +48,14 @@ class HistoryService {
         try {
             const historyCollection = collection(db, 'UserHistory');
             const q = query(
-                historyCollection, 
-                where('userId', '==', userId), 
-                orderBy('timestamp', 'desc'), 
+                historyCollection,
+                where('userId', '==', userId),
+                orderBy('timestamp', 'desc'),
                 limit(count)
             );
 
             const querySnapshot = await getDocs(q);
-            
+
             const history: HistoryEvent[] = [];
             querySnapshot.forEach(doc => {
                 history.push({ id: doc.id, ...doc.data() } as HistoryEvent);

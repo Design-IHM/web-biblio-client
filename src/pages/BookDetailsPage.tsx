@@ -87,7 +87,7 @@ const BookDetailsPage: React.FC = () => {
                         userId: comment.nomUser, // Utilise nomUser comme userId temporaire
                         userName: userData.userName,
                         userAvatar: userData.userAvatar,
-                        helpful: 0 // Valeur par défaut pour le système de votes
+                        helpful: 0
                     } as CommentWithUserData;
                 })
             );
@@ -347,7 +347,7 @@ useEffect(() => {
             </div>
         );
     }
-    
+
 
     return (
         <div className="min-h-screen bg-gray-50">

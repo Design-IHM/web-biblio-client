@@ -7,12 +7,22 @@ import { db, auth } from '../../configs/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { authService } from '../../services/auth/authService';
 import {TabEtatEntry, BiblioUser, EtatValue, ReservationEtatValue} from "../../types/auth";
+import { toast } from 'react-toastify';
 
 export interface Comment {
     heure: Timestamp;
     nomUser: string;
     note: number;
     texte: string;
+}
+
+export interface CommentWithUserData{
+    note: number;
+    id?: string;
+    text?: string;
+    userId?: string;
+    userName?: string;
+    date?: string | Date;
 }
 
 export interface BiblioBook {
@@ -103,7 +113,7 @@ const BookCard: React.FC<BookCardProps> = ({
         e.stopPropagation();
 
         if (!currentUser || book.exemplaire === 0) {
-            alert("Vous devez être connecté pour réserver un livre.");
+            toast.warning("⚠️ Vous devez être connecté pour réserver un livre.");
             return;
         }
 
@@ -112,23 +122,23 @@ const BookCard: React.FC<BookCardProps> = ({
         try {
             const userRef = doc(db, "BiblioUser", currentUser.email!);
             const bookRef = doc(db, "BiblioBooks", book.id);
-
             const batch = writeBatch(db);
-
             const max = orgSettings?.MaximumSimultaneousLoans || 5;
 
-            // Find the first available etat slot
             let etatIndex: number | null = null;
             for (let i = 1; i <= max; i++) {
                 const etatKey = `etat${i}`;
-                if (isKeyOfBiblioUser(etatKey, max) && currentUser[etatKey as keyof BiblioUser] === 'ras') {
+                if (
+                    isKeyOfBiblioUser(etatKey, max) &&
+                    currentUser[etatKey as keyof BiblioUser] === 'ras'
+                ) {
                     etatIndex = i;
                     break;
                 }
             }
 
             if (etatIndex === null) {
-                alert("Vous avez atteint le nombre maximum de réservations.");
+                toast.warning("⚠️ Vous avez atteint le nombre maximum de réservations.");
                 return;
             }
 
@@ -143,7 +153,6 @@ const BookCard: React.FC<BookCardProps> = ({
                 1
             ];
 
-            // Update user's reservation state
             batch.update(userRef, {
                 [`etat${etatIndex}`]: 'reserv' as EtatValue,
                 [`tabEtat${etatIndex}`]: tabEtatEntry,
@@ -158,21 +167,24 @@ const BookCard: React.FC<BookCardProps> = ({
                 })
             });
 
-            // Decrement the book's available copies
             batch.update(bookRef, {
                 exemplaire: increment(-1)
             });
 
             await batch.commit();
 
-            alert("Livre réservé avec succès!");
+            const updatedUser = await authService.getCurrentUser();
+            setCurrentUser(updatedUser);
+
+            toast.success("Livre réservé avec succès !");
         } catch (error) {
             console.error('Erreur lors de la réservation:', error);
-            alert("Une erreur est survenue lors de la réservation.");
+            toast.error("❌ Une erreur est survenue lors de la réservation.");
         } finally {
             setIsReserving(false);
         }
     };
+
 
 
 

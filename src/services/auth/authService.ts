@@ -613,7 +613,6 @@ class AuthService {
             }
 
             await updateDoc(doc(db, 'BiblioUser', email), updateData);
-            console.log(`✅ État emprunt ${etatIndex} mis à jour: ${nouvelEtat}`);
 
         } catch (error) {
             console.error('❌ Erreur mise à jour état emprunt:', error);

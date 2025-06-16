@@ -4,17 +4,19 @@ import { ConfigProvider } from './contexts/ConfigContext';
 import RootLayout from './layouts/RootLayout';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
-import ReservationsPage from './pages/profile/EmpruntsPage.tsx';
+import ReservationsPage from './pages/profile/ReservationPage';
 import NotificationsPage from './pages/profile/NotificationsPage';
 import HistoryPage from './pages/profile/ConsultationsPage';
 import ChatPage from './pages/profile/ChatPage';
 import BookDetailsPage from './pages/BookDetailsPage';
-import AuthPage from "./pages/AuthPage.tsx";
-import BooksPage from "./pages/BooksPage.tsx";
-import ThesisPage from "./pages/ThesisPage.tsx";
-import ThesisDetailsPage from "./pages/ThesisDetailsPage.tsx";
-import ProfilePage from "./pages/profile/ProfilePage.tsx";
-import ProfileLayout from "./layouts/ProfileLayout.tsx";
+import AuthPage from "./pages/AuthPage";
+import BooksPage from "./pages/BooksPage";
+import ThesisPage from "./pages/ThesisPage";
+import ThesisDetailsPage from "./pages/ThesisDetailsPage";
+import ProfilePage from "./pages/profile/ProfilePage";
+import ProfileLayout from "./layouts/ProfileLayout";
+import EmpruntPage from "./pages/profile/EmpruntsPage";
+import {ToastContainer} from "react-toastify";
 
 const router = createBrowserRouter([
     {
@@ -56,6 +58,10 @@ const router = createBrowserRouter([
                 element: <ProfilePage />,
             },
             {
+                path: 'reservations',
+                element: <ReservationsPage />,
+            },
+            {
                 path: 'Chat',
                 element: <ChatPage />,
             },
@@ -69,7 +75,7 @@ const router = createBrowserRouter([
             },
             {
                 path: 'emprunts',
-                element: <ReservationsPage />,
+                element: <EmpruntPage />,
             },
         ],
     },
@@ -83,6 +89,7 @@ function App() {
     return (
         <ConfigProvider>
             <RouterProvider router={router} />
+            <ToastContainer position="top-right" autoClose={3000} />
             {/*<DebugConfig />*/}
         </ConfigProvider>
     );

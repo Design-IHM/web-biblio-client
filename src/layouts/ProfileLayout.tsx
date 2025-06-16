@@ -1,4 +1,4 @@
-
+// src/layouts/ProfileLayout.tsx
 import {useState, useEffect, JSX} from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
 import {
@@ -13,7 +13,7 @@ import {
     Home,
     Settings,
     Menu,
-    X, BookIcon
+    X, Book
 } from 'lucide-react';
 import { authService } from '../services/auth/authService';
 import { BiblioUser } from '../types/auth';
@@ -112,15 +112,15 @@ const ProfileLayout = () => {
         },
         {
             path: '/profile/reservations',
-            name: 'Reservations',
-            icon: <BookIcon size={20} />,
-            badge: user?.reservations?.length || 0
+            name: 'Reservation',
+            icon: <Book size={20} />,
+            badge: getReservationCount()
         },
         {
             path: '/profile/emprunts',
             name: 'Emprunts',
             icon: <Calendar size={20} />,
-            badge: user?.reservations?.length || 0
+            badge: getEmpruntCount()
         },
         {
             path: '/profile/chat',
@@ -140,6 +140,40 @@ const ProfileLayout = () => {
         }
     ];
 
+    // Fonction pour calculer le nombre de réservations
+    function getReservationCount(): number {
+        if (!user || !orgSettings) return 0;
+
+        let reservationCount = 0;
+        const maxLoans = orgSettings.MaximumSimultaneousLoans || 5;
+
+        for (let i = 1; i <= maxLoans; i++) {
+            const etatKey = `etat${i}` as keyof BiblioUser;
+            if (user[etatKey] === 'reserv') {
+                reservationCount++;
+            }
+        }
+
+        return reservationCount;
+    }
+
+    // Fonction pour calculer le nombre d'emprunts
+    function getEmpruntCount(): number {
+        if (!user || !orgSettings) return 0;
+
+        let empruntCount = 0;
+        const maxLoans = orgSettings.MaximumSimultaneousLoans || 5;
+
+        for (let i = 1; i <= maxLoans; i++) {
+            const etatKey = `etat${i}` as keyof BiblioUser;
+            if (user[etatKey] === 'emprunt') {
+                empruntCount++;
+            }
+        }
+
+        return empruntCount;
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
@@ -152,6 +186,7 @@ const ProfileLayout = () => {
         const path = location.pathname;
         if (path === '/profile') return 'Profil';
         if (path.includes('emprunts')) return 'Emprunts';
+        if (path.includes('reservations')) return 'Reservations';
         if (path.includes('chat')) return 'Chat';
         if (path.includes('consultations')) return 'Consultations';
         if (path.includes('notifications')) return 'Notifications';
@@ -251,7 +286,7 @@ const ProfileLayout = () => {
                 </div>
 
                 {/* Navigation menu */}
-                <nav className="mt-4 px-3 flex-1 overflow-y-auto">
+                <nav className="flex-1 px-3 py-4 overflow-y-auto">
                     <ul className="space-y-2">
                         {menuItems.map((item) => {
                             const isActive = location.pathname === item.path ||
@@ -313,13 +348,15 @@ const ProfileLayout = () => {
                     </ul>
                 </nav>
 
-                {/* Bouton de déconnexion */}
-                <div className="p-4 mt-82 border-t border-white/10">
+                {/* Bouton de déconnexion - fixé en bas */}
+                <div className="p-3 border-t mt-72 border-white/10">
                     <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-3 py-3 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                        className={`flex items-center w-full px-3 py-3 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-xl transition-all duration-300 cursor-pointer group ${
+                            collapsed && !isMobile ? 'justify-center' : ''
+                        }`}
                     >
-                        <LogOut size={20} />
+                        <LogOut size={20} className="flex-shrink-0" />
                         {(!collapsed || isMobile) && (
                             <span className="ml-3 font-medium">Se déconnecter</span>
                         )}

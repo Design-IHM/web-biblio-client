@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, AlertCircle } from 'lucide-react';
+import { doc, onSnapshot } from "firebase/firestore";
 
 import { BiblioUser, TabEtatEntry } from '../../types/auth';
 import { authService } from '../../services/auth/authService';
 import { useConfig } from '../../contexts/ConfigContext';
 import {cancelReservation} from "../../services/cancelReservation.ts";
+import {db} from "../../configs/firebase.ts";
 
 interface CartDropdownProps {
     currentUser: BiblioUser | null;
@@ -23,17 +25,33 @@ const CartDropdown: React.FC<CartDropdownProps> = ({ currentUser, setCurrentUser
     useEffect(() => {
         if (!currentUser) return;
 
-        const entries: TabEtatEntry[] = [];
-        for (let i = 1; i <= maxLoans; i++) {
-            const etatKey = `etat${i}` as keyof typeof currentUser;
-            const tabEtatKey = `tabEtat${i}` as keyof typeof currentUser;
-
-            if (currentUser[etatKey] === 'reserv' && Array.isArray(currentUser[tabEtatKey])) {
-                entries.push(currentUser[tabEtatKey] as TabEtatEntry);
+        const unsubscribe = onSnapshot(doc(db, "BiblioUser", currentUser.email), (docSnap) => {
+            if (!docSnap.exists()) {
+                console.log("Document utilisateur introuvable");
+                setTabEtatEntries([]);
+                return;
             }
-        }
-        setTabEtatEntries(entries);
-    }, [currentUser, maxLoans]);
+            const userData = docSnap.data() as BiblioUser;
+            console.log("Données utilisateur mises à jour:", userData);
+
+            const entries: TabEtatEntry[] = [];
+
+            for (let i = 1; i <= maxLoans; i++) {
+                const etatKey = `etat${i}` as keyof BiblioUser;
+                const tabEtatKey = `tabEtat${i}` as keyof BiblioUser;
+
+                if (userData[etatKey] === 'reserv' && Array.isArray(userData[tabEtatKey])) {
+                    entries.push(userData[tabEtatKey] as TabEtatEntry);
+                }
+            }
+
+            setTabEtatEntries(entries);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser?.email, maxLoans]);
+
+
 
     const handleCancel = async (entry: TabEtatEntry) => {
         const [idDoc, nameDoc] = entry;
@@ -123,7 +141,7 @@ const CartDropdown: React.FC<CartDropdownProps> = ({ currentUser, setCurrentUser
                         <div className="px-4 py-3 border-t border-gray-200">
                             <button
                                 onClick={() => {
-                                    navigate("/reservations");
+                                    navigate("/profile/reservations");
                                     setShowCartDropdown(false);
                                 }}
                                 className="block w-full text-center cursor-pointer text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"

@@ -5,7 +5,7 @@ import { auth } from '../../configs/firebase';
 import { useConfig } from '../../contexts/ConfigContext';
 import { authService } from '../../services/auth/authService';
 import {BiblioUser} from '../../types/auth';
-import { BookOpen, ShoppingBag, User, Menu, X, LogOut, Settings, Bell, MessageCircle, History, Heart } from 'lucide-react';
+import { BookOpen, ShoppingBag, User, Menu, X, LogOut, Bell, MessageCircle, History } from 'lucide-react';
 import CartDropdown from "./CartDropdown.tsx";
 
 const Header: React.FC = () => {
@@ -22,25 +22,44 @@ const Header: React.FC = () => {
     const primaryColor = orgSettings?.Theme?.Primary || '#ff8c00';
     const organizationName = orgSettings?.Name || 'BiblioENSPY';
 
-    const reservationCount = currentUser?.reservations?.filter(r => r.etat === 'reserver')?.length || 0;
+    const reservationCount = getReservationCount();
+    const empruntCount = getEmpruntCount();
     const unreadNotifications = currentUser?.notifications?.filter(n => !n.read)?.length || 0;
     const unreadMessages = currentUser?.messages?.filter(m => !m.lu && !m.lue)?.length || 0;
-    // const totalEtat: number = orgSettings?.MaximumSimultaneousLoans || 5;
 
-/*    const extractTabEtatReserved = (user: BiblioUser, max: number = totalEtat): TabEtatEntry[] => {
-        const reserved: TabEtatEntry[] = [];
+    // Fonction pour calculer le nombre de réservations
+    function getReservationCount(): number {
+        if (!currentUser || !orgSettings) return 0;
 
-        for (let i = 1; i <= max; i++) {
+        let reservationCount = 0;
+        const maxLoans = orgSettings.MaximumSimultaneousLoans || 5;
+
+        for (let i = 1; i <= maxLoans; i++) {
             const etatKey = `etat${i}` as keyof BiblioUser;
-            const tabEtatKey = `tabEtat${i}` as keyof BiblioUser;
-
-            if (user[etatKey] === 'reserv' && Array.isArray(user[tabEtatKey])) {
-                reserved.push(user[tabEtatKey] as TabEtatEntry);
+            if (currentUser[etatKey] === 'reserv') {
+                reservationCount++;
             }
         }
 
-        return reserved;
-    };*/
+        return reservationCount;
+    }
+
+    // Fonction pour calculer le nombre d'emprunts
+    function getEmpruntCount(): number {
+        if (!currentUser || !orgSettings) return 0;
+
+        let empruntCount = 0;
+        const maxLoans = orgSettings.MaximumSimultaneousLoans || 5;
+
+        for (let i = 1; i <= maxLoans; i++) {
+            const etatKey = `etat${i}` as keyof BiblioUser;
+            if (currentUser[etatKey] === 'emprunt') {
+                empruntCount++;
+            }
+        }
+
+        return empruntCount;
+    }
 
     useEffect(() => {
         const handleScroll = () => {
@@ -138,9 +157,9 @@ const Header: React.FC = () => {
                             </div>
                             <div>
                                 <p className="text-lg font-bold text-blue-600">
-                                    {currentUser?.historique?.length || 0}
+                                    {empruntCount}
                                 </p>
-                                <p className="text-xs text-gray-500">Consultés</p>
+                                <p className="text-xs text-gray-500">Emprunts</p>
                             </div>
                             <div>
                                 <p className="text-lg font-bold text-green-600">
@@ -160,7 +179,7 @@ const Header: React.FC = () => {
                             Mon Profil
                         </NavLink>
                         <NavLink
-                            to="/reservations"
+                            to="/profile/reservations"
                             className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setShowUserMenu(false)}
                         >
@@ -175,8 +194,25 @@ const Header: React.FC = () => {
                                 </span>
                             )}
                         </NavLink>
+
                         <NavLink
-                            to="/messages"
+                            to="/profile/emprunts"
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                        >
+                            <BookOpen className="w-4 h-4 mr-3" />
+                            Mes Emprunts
+                            {empruntCount > 0 && (
+                                <span
+                                    className="ml-auto px-2 py-1 text-xs text-white rounded-full"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    {empruntCount}
+                                </span>
+                            )}
+                        </NavLink>
+                        <NavLink
+                            to="/profile/Chat"
                             className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setShowUserMenu(false)}
                         >
@@ -189,23 +225,15 @@ const Header: React.FC = () => {
                             )}
                         </NavLink>
                         <NavLink
-                            to="/history"
+                            to="/profile/consultations"
                             className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setShowUserMenu(false)}
                         >
                             <History className="w-4 h-4 mr-3" />
-                            Historique
+                            Consultation
                         </NavLink>
                         <NavLink
-                            to="/favorites"
-                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
-                            onClick={() => setShowUserMenu(false)}
-                        >
-                            <Heart className="w-4 h-4 mr-3" />
-                            Favoris
-                        </NavLink>
-                        <NavLink
-                            to="/notifications"
+                            to="/profile/notifications"
                             className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setShowUserMenu(false)}
                         >
@@ -218,14 +246,6 @@ const Header: React.FC = () => {
                             )}
                         </NavLink>
                         <div className="border-t border-gray-100 my-2"></div>
-                        <NavLink
-                            to="/settings"
-                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
-                            onClick={() => setShowUserMenu(false)}
-                        >
-                            <Settings className="w-4 h-4 mr-3" />
-                            Paramètres
-                        </NavLink>
                         <button
                             onClick={handleSignOut}
                             className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 transition-colors"
@@ -240,7 +260,7 @@ const Header: React.FC = () => {
     );
 
     const AuthButtons = () => (
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center cursor-pointer space-x-3">
             <NavLink
                 to="/auth"
                 className="px-4 py-2 text-white rounded-lg transition-colors hover:opacity-90"
@@ -354,7 +374,7 @@ const Header: React.FC = () => {
                         {!currentUser && <AuthButtons />}
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                            className="lg:hidden cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                             {isMenuOpen ? (
                                 <X className="h-6 w-6" />
@@ -396,7 +416,7 @@ const Header: React.FC = () => {
                                 Aides
                             </NavLink>
                             {currentUser && firebaseUser?.emailVerified ? (
-                                <div className="px-4 py-2 border-t border-gray-100 mt-2">
+                                <div className="px-4 cursor-pointer py-2 border-t border-gray-100 mt-2">
                                     <div className="flex items-center space-x-3 mb-4">
                                         <img
                                             src={currentUser.profilePicture || currentUser.imageUri || '/default-avatar.png'}
@@ -418,7 +438,7 @@ const Header: React.FC = () => {
                                             Mon Profil
                                         </NavLink>
                                         <NavLink
-                                            to="/reservations"
+                                            to="/profile/reservations"
                                             className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                             onClick={() => setIsMenuOpen(false)}
                                         >
@@ -434,7 +454,23 @@ const Header: React.FC = () => {
                                             )}
                                         </NavLink>
                                         <NavLink
-                                            to="/notifications"
+                                            to="/profile/reservations"
+                                            className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <ShoppingBag className="w-4 h-4 mr-3" />
+                                            Emprunts
+                                            {empruntCount > 0 && (
+                                                <span
+                                                    className="ml-auto px-2 py-1 text-xs text-white rounded-full"
+                                                    style={{ backgroundColor: primaryColor }}
+                                                >
+                                                    {empruntCount}
+                                                </span>
+                                            )}
+                                        </NavLink>
+                                        <NavLink
+                                            to="/profile/notifications"
                                             className="flex items-center px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                             onClick={() => setIsMenuOpen(false)}
                                         >
